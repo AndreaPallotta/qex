@@ -20,7 +20,7 @@ A lightweight experiment-runner and lab notebook for quantum computing, built on
 ## Installation
 
 ```bash
-pip install qlab
+pip install qex
 ```
 
 ## Quick Start
