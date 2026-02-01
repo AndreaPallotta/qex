@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qlab"
+version = "0.1.0"
+description = "A lightweight experiment-runner and lab notebook for quantum computing"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "qlab contributors"}
+]
+keywords = [
+    "quantum",
+    "quantum-computing",
+    "cirq",
+    "experiments",
+    "quantum-simulation",
+    "bloch-sphere",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "cirq>=1.6.1",
+    "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/AndreaPallotta/qlab"
+Documentation = "https://github.com/AndreaPallotta/qlab#readme"
+Repository = "https://github.com/AndreaPallotta/qlab"
+Issues = "https://github.com/AndreaPallotta/qlab/issues"
+
+[tool.setuptools]
+packages = ["qlab"]
+
+[tool.setuptools.package-data]
+qlab = ["py.typed"]
