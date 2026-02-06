@@ -1,14 +1,14 @@
-# qlab
+# qex
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/AndreaPallotta/qlab/main/assets/logo.png" alt="qlab logo" width="200"/>
+  <img src="https://raw.githubusercontent.com/AndreaPallotta/qlab/main/assets/logo.png" alt="qex logo" width="200"/>
 </div>
 
 A lightweight experiment-runner and lab notebook for quantum computing, built on top of Cirq.
 
 ## Overview
 
-`qlab` is designed for running quantum experiments, tracking results, and visualizing outcomes. It focuses on reproducibility, persistence, and visualization rather than being a general-purpose quantum framework.
+`qex` is designed for running quantum experiments, tracking results, and visualizing outcomes. It focuses on reproducibility, persistence, and visualization rather than being a general-purpose quantum framework.
 
 **Key Features:**
 - 🧪 **Experiment Management**: Define parametric quantum circuits and run them systematically
@@ -26,14 +26,14 @@ pip install qex
 ## Quick Start
 
 ```python
-from qlab import CirqBackend, Runner, ResultStore
-from qlab.demos import hadamard_experiment
+from qex import CirqBackend, Runner, ResultStore
+from qex.demos import hadamard_experiment
 from pathlib import Path
 
 # Setup
 backend = CirqBackend()
 runner = Runner(backend)
-store = ResultStore(Path("qlab_data/qlab.db"))
+store = ResultStore(Path("qex_data/qex.db"))
 
 # Run an experiment
 experiment = hadamard_experiment()
@@ -52,7 +52,7 @@ store.close()
 
 ## Built-in Experiments
 
-`qlab` includes three demo experiments for validation:
+`qex` includes three demo experiments for validation:
 
 - **X Gate**: `|0⟩ → X → |1⟩` - Simple bit flip
 - **Hadamard**: `|0⟩ → H → superposition` - Creates equal superposition

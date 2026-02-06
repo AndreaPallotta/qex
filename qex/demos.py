@@ -4,7 +4,7 @@ Built-in demo experiments for validation.
 
 from typing import Dict, Any
 import cirq
-from qlab.experiment import Experiment
+from qex.experiment import Experiment
 
 
 def x_gate_experiment() -> Experiment:

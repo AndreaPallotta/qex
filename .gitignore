@@ -9,8 +9,8 @@ wheels/
 # Virtual environments
 .venv
 
-# qlab data directory (test results)
-qlab_data/
+# qex data directory (test results)
+qex_data/
 
 results/
 

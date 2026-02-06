@@ -1,4 +1,4 @@
-# Testing qlab
+# Testing qex
 
 ## Quick Start
 
@@ -11,7 +11,7 @@ Run the test suite:
 Or run the test script directly:
 
 ```bash
-python test_qlab.py
+python test_qex.py
 ```
 
 ## Test Cases
@@ -42,17 +42,17 @@ The test suite includes four validation tests:
 
 ## Manual Testing
 
-You can also test qlab interactively:
+You can also test qex interactively:
 
 ```python
-from qlab import CirqBackend, Runner, ResultStore
-from qlab.demos import hadamard_experiment
+from qex import CirqBackend, Runner, ResultStore
+from qex.demos import hadamard_experiment
 from pathlib import Path
 
 # Setup
 backend = CirqBackend()
-runner = Runner(backend, base_dir=Path("qlab_data"))
-store = ResultStore(Path("qlab_data/qlab.db"))
+runner = Runner(backend, base_dir=Path("qex_data"))
+store = ResultStore(Path("qex_data/qex.db"))
 
 # Run experiment
 experiment = hadamard_experiment()
@@ -63,7 +63,7 @@ store.save_run(record)
 
 # View results
 print(f"Run ID: {record.run_id}")
-print(f"Bloch HTML: qlab_data/{record.artifacts['bloch_sphere']}")
+print(f"Bloch HTML: qex_data/{record.artifacts['bloch_sphere']}")
 
 # Retrieve
 runs = store.list_runs(experiment_name="hadamard")
@@ -76,8 +76,8 @@ store.close()
 ## Expected Output
 
 After running tests, you should see:
-- `qlab_data/` directory with:
-  - `qlab.db` - SQLite database
+- `qex_data/` directory with:
+  - `qex.db` - SQLite database
   - `results/` - Density matrix .npy files
   - `artifacts/` - Bloch sphere HTML files
 

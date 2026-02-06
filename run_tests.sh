@@ -1,5 +1,5 @@
 #!/bin/bash
-# Test runner script for qlab
+# Test runner script for qex
 
 set -e
 
@@ -12,19 +12,19 @@ if [ -z "$VIRTUAL_ENV" ]; then
     echo ""
 fi
 
-# Install/update qlab in development mode
-echo "Installing qlab in development mode..."
+# Install/update qex in development mode
+echo "Installing qex in development mode..."
 pip install -e . > /dev/null 2>&1 || {
-    echo "Failed to install qlab. Make sure dependencies are installed:"
+    echo "Failed to install qex. Make sure dependencies are installed:"
     echo "  pip install cirq numpy"
     exit 1
 }
 
-echo "Running qlab tests..."
+echo "Running qex tests..."
 echo ""
 
 # Run the test script
-python test_qlab.py
+python test_qex.py
 
 # Check exit code
 if [ $? -eq 0 ]; then

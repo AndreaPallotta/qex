@@ -8,10 +8,10 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 import cirq
 import numpy as np
-from qlab.experiment import Experiment
-from qlab.backend import Backend
-from qlab.store import RunRecord  # type: ignore
-from qlab.bloch import density_matrix_to_bloch, bloch_to_html
+from qex.experiment import Experiment
+from qex.backend import Backend
+from qex.store import RunRecord  # type: ignore
+from qex.bloch import density_matrix_to_bloch, bloch_to_html
 
 
 class Runner:

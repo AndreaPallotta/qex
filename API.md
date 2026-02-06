@@ -1,9 +1,9 @@
-# qlab Public API
+# qex Public API
 
 ## Package Structure
 
 ```
-qlab/
+qex/
 ├── __init__.py          # Public exports
 ├── experiment.py        # Experiment class
 ├── backend.py           # Backend interface and CirqBackend
@@ -93,13 +93,13 @@ def ry_sweep_experiment() -> Experiment  # Takes {"theta": float} parameter
 ## Usage Pattern
 
 ```python
-from qlab import Experiment, CirqBackend, Runner, ResultStore
-from qlab.demos import x_gate_experiment
+from qex import Experiment, CirqBackend, Runner, ResultStore
+from qex.demos import x_gate_experiment
 
 # Setup
 backend = CirqBackend()
 runner = Runner(backend)
-store = ResultStore(Path("qlab_data/qlab.db"))
+store = ResultStore(Path("qex_data/qex.db"))
 
 # Run experiment
 experiment = x_gate_experiment()

@@ -1,9 +1,9 @@
-# qlab Design Specification
+# qex Design Specification
 
 ## Package Layout
 
 ```
-qlab/
+qex/
 ├── __init__.py          # Public API exports
 ├── experiment.py        # Experiment class (parametric circuit builder)
 ├── backend.py           # Backend ABC and CirqBackend implementation
@@ -62,8 +62,8 @@ qlab/
 ### File Organization
 
 ```
-qlab_data/
-├── qlab.db
+qex_data/
+├── qex.db
 ├── results/
 │   └── {run_id}_rho.npy
 └── artifacts/

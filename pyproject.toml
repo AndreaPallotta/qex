@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = {text = "Apache-2.0"}
 authors = [
-    {name = "qlab contributors"}
+    {name = "qex contributors"}
 ]
 keywords = [
     "quantum",
@@ -53,7 +53,7 @@ Repository = "https://github.com/AndreaPallotta/qlab"
 Issues = "https://github.com/AndreaPallotta/qlab/issues"
 
 [tool.setuptools]
-packages = ["qlab"]
+packages = ["qex"]
 
 [tool.setuptools.package-data]
-qlab = ["py.typed"]
+qex = ["py.typed"]

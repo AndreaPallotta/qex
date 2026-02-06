@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """
-Test script for qlab - runs basic validation tests.
+Test script for qex - runs basic validation tests.
 """
 
 import sys
 from pathlib import Path
 import numpy as np
 
-# Add qlab to path
+# Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from qlab import CirqBackend, Runner, ResultStore
-from qlab.demos import x_gate_experiment, hadamard_experiment, ry_sweep_experiment
-from qlab.bloch import density_matrix_to_bloch
+from qex import CirqBackend, Runner, ResultStore
+from qex.demos import x_gate_experiment, hadamard_experiment, ry_sweep_experiment
+from qex.bloch import density_matrix_to_bloch
 
 
 def test_x_gate():
@@ -20,7 +20,7 @@ def test_x_gate():
     print("Test 1: X Gate Experiment")
     print("-" * 50)
     
-    base_dir = Path("qlab_data")
+    base_dir = Path("qex_data")
     backend = CirqBackend()
     runner = Runner(backend, base_dir=base_dir)
     experiment = x_gate_experiment()
@@ -59,7 +59,7 @@ def test_hadamard():
     print("Test 2: Hadamard Experiment")
     print("-" * 50)
     
-    base_dir = Path("qlab_data")
+    base_dir = Path("qex_data")
     backend = CirqBackend()
     runner = Runner(backend, base_dir=base_dir)
     experiment = hadamard_experiment()
@@ -98,7 +98,7 @@ def test_ry_sweep():
     print("Test 3: Ry Sweep Experiment")
     print("-" * 50)
     
-    base_dir = Path("qlab_data")
+    base_dir = Path("qex_data")
     backend = CirqBackend()
     runner = Runner(backend, base_dir=base_dir)
     experiment = ry_sweep_experiment()
@@ -142,12 +142,12 @@ def test_persistence():
     print("-" * 50)
     
     # Clean up any existing database
-    db_path = Path("qlab_data/qlab.db")
+    db_path = Path("qex_data/qex.db")
     if db_path.exists():
         db_path.unlink()
     
     backend = CirqBackend()
-    runner = Runner(backend, base_dir=Path("qlab_data"))
+    runner = Runner(backend, base_dir=Path("qex_data"))
     store = ResultStore(db_path)
     
     # Run and save experiments
@@ -201,7 +201,7 @@ def test_persistence():
 def main():
     """Run all tests"""
     print("=" * 50)
-    print("qlab Test Suite")
+    print("qex Test Suite")
     print("=" * 50)
     print()
     

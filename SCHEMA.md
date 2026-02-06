@@ -1,4 +1,4 @@
-# SQLite Schema for qlab
+# SQLite Schema for qex
 
 ## Overview
 
@@ -43,8 +43,8 @@ Stores references to generated artifacts (e.g., Bloch sphere HTML).
 ## File Organization
 
 ```
-qlab_data/
-├── qlab.db              # SQLite database
+qex_data/
+├── qex.db               # SQLite database
 ├── results/
 │   ├── {run_id}_rho.npy # Density matrices
 │   └── ...
