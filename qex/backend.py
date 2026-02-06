@@ -11,29 +11,29 @@ import numpy as np
 class Backend(ABC):
     """
     Abstract interface for executing quantum circuits.
-    
+
     A backend executes a circuit and returns the final density matrix.
-    For MVP, all backends must support 1-qubit circuits only.
+    Supports circuits with any number of qubits.
     """
-    
+
     @abstractmethod
     def run(self, circuit: cirq.Circuit) -> np.ndarray:
         """
         Execute a circuit and return the final density matrix.
-        
+
         Args:
-            circuit: A Cirq Circuit (must be 1-qubit for MVP).
-            
+            circuit: A Cirq Circuit (any number of qubits).
+
         Returns:
-            A 2x2 density matrix as a numpy array (complex dtype).
+            Density matrix of shape (2**n, 2**n) for n qubits (complex dtype).
         """
         pass
-    
+
     @abstractmethod
     def get_name(self) -> str:
         """
         Get the name/identifier of this backend.
-        
+
         Returns:
             Backend name string.
         """
@@ -43,46 +43,37 @@ class Backend(ABC):
 class CirqBackend(Backend):
     """
     Concrete backend using Cirq's ideal simulator.
-    
+
     Uses Cirq's Simulator for ideal (noiseless) simulation.
     Results are returned as density matrices derived from statevectors.
     """
-    
+
     def __init__(self):
         """
         Initialize the Cirq ideal simulator backend.
         """
         self._simulator = cirq.Simulator()
-    
+
     def run(self, circuit: cirq.Circuit) -> np.ndarray:
         """
         Execute circuit on ideal Cirq simulator and return density matrix.
-        
+
         Args:
-            circuit: A Cirq Circuit (must be 1-qubit for MVP).
-            
+            circuit: A Cirq Circuit (any number of qubits).
+
         Returns:
-            2x2 density matrix (complex dtype).
+            Density matrix (2**n x 2**n for n qubits, complex dtype).
         """
-        # Validate 1-qubit constraint
-        qubits = circuit.all_qubits()
-        if len(qubits) != 1:
-            raise ValueError(f"Circuit must have exactly 1 qubit, got {len(qubits)}")
-        
-        # Run simulation to get final state
         result = self._simulator.simulate(circuit)
         statevector = result.final_state_vector
-        
-        # Convert statevector to density matrix: |ψ⟩⟨ψ|
-        # For 1 qubit, statevector is length 2
+        # |ψ⟩⟨ψ| in same qubit order as Cirq (big-endian by default)
         rho = np.outer(statevector, np.conj(statevector))
-        
         return rho
-    
+
     def get_name(self) -> str:
         """
         Get backend name.
-        
+
         Returns:
             "cirq_ideal"
         """

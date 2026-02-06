@@ -58,13 +58,6 @@ store.close()
 - **Hadamard**: `|0⟩ → H → superposition` - Creates equal superposition
 - **Ry Sweep**: `|0⟩ → Ry(θ)` - Rotation around Y-axis with parameter `theta`
 
-## Documentation
-
-- **[API Reference](API.md)**: Complete API documentation
-- **[Design Specification](DESIGN.md)**: Architecture and design decisions
-- **[Database Schema](SCHEMA.md)**: SQLite schema documentation
-- **[Bloch Sphere Contract](BLOCH_CONTRACT.md)**: Visualization math and interface
-
 ## Current Scope (MVP)
 
 - ✅ 1-qubit experiments only
@@ -83,7 +76,3 @@ store.close()
 ## License
 
 Apache License 2.0
-
-## Contributing
-
-Contributions are welcome! Please see the [Design Specification](DESIGN.md) for architecture details and constraints.

@@ -6,25 +6,64 @@ from typing import Tuple
 import numpy as np
 
 
+def reduced_density_matrix(rho: np.ndarray, qubit_index: int = 0) -> np.ndarray:
+    """
+    Partial trace: keep one qubit, trace out the rest.
+
+    Assumes Cirq qubit ordering: qubit 0 is most significant in the state vector.
+
+    Args:
+        rho: Full density matrix, shape (2**n, 2**n).
+        qubit_index: Which qubit to keep (0 = first qubit). Must be in [0, n-1].
+
+    Returns:
+        2x2 reduced density matrix for the specified qubit.
+    """
+    n = int(round(np.log2(rho.shape[0])))
+    if n < 1 or 2**n != rho.shape[0]:
+        raise ValueError(f"rho must be 2**n x 2**n, got {rho.shape}")
+    if not 0 <= qubit_index < n:
+        raise ValueError(f"qubit_index must be in [0, {n-1}], got {qubit_index}")
+
+    if n == 1:
+        return np.asarray(rho, dtype=complex)
+
+    # Reshape to (2,2,...,2) with 2n axes: (i0,i1,...,j0,j1,...)
+    rho_tensor = rho.reshape((2,) * (2 * n))
+    # Permute so kept qubit is first: (i_keep, i_rest..., j_keep, j_rest...)
+    perm_row = [qubit_index] + [i for i in range(n) if i != qubit_index]
+    perm_col = [n + qubit_index] + [n + i for i in range(n) if i != qubit_index]
+    rho_reorder = np.transpose(rho_tensor, perm_row + perm_col)
+    dim_other = 2 ** (n - 1)
+    rho_reshape = rho_reorder.reshape(2, dim_other, 2, dim_other)
+    rho_red = np.trace(rho_reshape, axis1=1, axis2=3)
+    return rho_red
+
+
 def density_matrix_to_bloch(rho: np.ndarray) -> Tuple[float, float, float]:
     """
     Convert a 1-qubit density matrix to Bloch sphere coordinates (x, y, z).
-    
+
     For a density matrix ρ, the Bloch vector is computed as:
         x = Tr(ρ · σ_x)
         y = Tr(ρ · σ_y)
         z = Tr(ρ · σ_z)
-    
+
     where σ_x, σ_y, σ_z are the Pauli matrices.
-    
+
+    For multi-qubit rho (2**n x 2**n), use reduced_density_matrix first to get
+    a 2x2 matrix for one qubit, then pass that here.
+
     Args:
         rho: 2x2 density matrix (complex dtype).
             Must be a valid density matrix (Hermitian, trace=1, positive semidefinite).
-    
+
     Returns:
         Tuple of (x, y, z) coordinates as real floats.
         Coordinates are guaranteed to satisfy x² + y² + z² ≤ 1.
     """
+    if rho.shape != (2, 2):
+        raise ValueError(f"density_matrix_to_bloch expects 2x2 matrix, got {rho.shape}")
     # Pauli matrices
     sigma_x = np.array([[0, 1], [1, 0]], dtype=complex)
     sigma_y = np.array([[0, -1j], [1j, 0]], dtype=complex)

@@ -5,14 +5,20 @@ Test script for qex - runs basic validation tests.
 
 import sys
 from pathlib import Path
+import cirq
 import numpy as np
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from qex import CirqBackend, Runner, ResultStore
-from qex.demos import x_gate_experiment, hadamard_experiment, ry_sweep_experiment
-from qex.bloch import density_matrix_to_bloch
+from qex.demos import (
+    x_gate_experiment,
+    hadamard_experiment,
+    ry_sweep_experiment,
+    bell_state_experiment,
+)
+from qex.bloch import density_matrix_to_bloch, reduced_density_matrix
 
 
 def test_x_gate():
@@ -198,18 +204,68 @@ def test_persistence():
     return True
 
 
+def test_bell_state():
+    """Test Bell state experiment: 2-qubit |Φ⁺⟩ = (|00⟩ + |11⟩)/√2"""
+    print("Test 5: Bell State (multi-qubit)")
+    print("-" * 50)
+
+    base_dir = Path("qex_data")
+    qubits = [cirq.GridQubit(0, 0), cirq.GridQubit(0, 1)]
+    backend = CirqBackend()
+    runner = Runner(backend, base_dir=base_dir)
+    experiment = bell_state_experiment()
+
+    record = runner.run(
+        experiment,
+        params={},
+        config={"qubits": qubits},
+    )
+
+    rho = np.load(base_dir / record.density_matrix_path)
+    print(f"Run ID: {record.run_id}")
+    print(f"Density matrix shape: {rho.shape}")
+
+    if rho.shape != (4, 4):
+        print(f"✗ Expected 4x4 density matrix, got {rho.shape}")
+        return False
+
+    # |Φ⁺⟩⟨Φ⁺| has 1/2 at (0,0), (3,3) and 1/2 at (0,3), (3,0)
+    expected = np.zeros((4, 4), dtype=complex)
+    expected[0, 0] = expected[3, 3] = 0.5
+    expected[0, 3] = expected[3, 0] = 0.5
+    if np.allclose(rho, expected):
+        print("✓ Bell state test passed: density matrix matches |Φ⁺⟩⟨Φ⁺|")
+    else:
+        print("✗ Bell state test failed: density matrix doesn't match")
+        return False
+
+    # Each single-qubit reduced DM should be I/2 (maximally mixed)
+    rho_red0 = reduced_density_matrix(rho, 0)
+    rho_red1 = reduced_density_matrix(rho, 1)
+    half_i = 0.5 * np.eye(2, dtype=complex)
+    if np.allclose(rho_red0, half_i) and np.allclose(rho_red1, half_i):
+        print("✓ Reduced density matrices are I/2 (maximally mixed)")
+    else:
+        print("✗ Reduced density matrices incorrect")
+        return False
+
+    print()
+    return True
+
+
 def main():
     """Run all tests"""
     print("=" * 50)
     print("qex Test Suite")
     print("=" * 50)
     print()
-    
+
     tests = [
         test_x_gate,
         test_hadamard,
         test_ry_sweep,
         test_persistence,
+        test_bell_state,
     ]
     
     results = []

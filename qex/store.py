@@ -66,9 +66,9 @@ class RunRecord:
     def get_density_matrix(self) -> np.ndarray:
         """
         Load and return the density matrix for this run.
-        
+
         Returns:
-            2x2 density matrix (complex dtype).
+            Density matrix (2x2 for 1 qubit, 2**n x 2**n for n qubits, complex dtype).
         """
         if self._base_dir is None:
             raise ValueError("Base directory not set. Use ResultStore.get_run() to load records.")
