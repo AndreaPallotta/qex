@@ -4,7 +4,7 @@ qex: A lightweight experiment-runner and lab notebook for quantum computing.
 Built on top of Cirq, focused on experiments, runs, reproducibility, and visualization.
 """
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 __all__ = [
     "Experiment",
     "Backend",

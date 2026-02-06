@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qex"
-version = "0.1.1"
+version = "0.1.2"
 description = "A lightweight experiment-runner and lab notebook for quantum computing"
 readme = "README.md"
 requires-python = ">=3.12"
