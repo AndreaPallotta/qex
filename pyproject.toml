@@ -47,10 +47,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/AndreaPallotta/qlab"
-Documentation = "https://github.com/AndreaPallotta/qlab#readme"
-Repository = "https://github.com/AndreaPallotta/qlab"
-Issues = "https://github.com/AndreaPallotta/qlab/issues"
+Homepage = "https://github.com/AndreaPallotta/qex"
+Documentation = "https://github.com/AndreaPallotta/qex#readme"
+Repository = "https://github.com/AndreaPallotta/qex"
+Issues = "https://github.com/AndreaPallotta/qex/issues"
 
 [tool.setuptools]
 packages = ["qex"]

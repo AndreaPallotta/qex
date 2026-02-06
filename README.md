@@ -1,7 +1,7 @@
 # qex
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/AndreaPallotta/qlab/main/assets/logo.png" alt="qex logo" width="200"/>
+  <img src="https://raw.githubusercontent.com/AndreaPallotta/qex/main/assets/logo.png" alt="qex logo" width="200"/>
 </div>
 
 A lightweight experiment-runner and lab notebook for quantum computing, built on top of Cirq.
