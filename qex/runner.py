@@ -69,6 +69,11 @@ class Runner:
             qubits = list(qubits)
 
         circuit = experiment.build_circuit(qubits, params)
+        # Ensure all qubits are present in the circuit so Cirq simulates all of them
+        for q in qubits:
+            if q not in circuit.all_qubits():
+                circuit.append(cirq.I(q))
+
         rho = self.backend.run(circuit)
 
         rho_path = f"results/{run_id}_rho.npy"
@@ -107,4 +112,5 @@ class Runner:
             artifacts=artifacts,
             metadata=metadata,
         )
+        record.set_base_dir(self.base_dir)
         return record

@@ -37,7 +37,7 @@ def reduced_density_matrix(rho: np.ndarray, qubit_index: int = 0) -> np.ndarray:
     dim_other = 2 ** (n - 1)
     rho_reshape = rho_reorder.reshape(2, dim_other, 2, dim_other)
     rho_red = np.trace(rho_reshape, axis1=1, axis2=3)
-    return rho_red
+    return rho_red  # type: ignore[no-any-return]
 
 
 def density_matrix_to_bloch(rho: np.ndarray) -> Tuple[float, float, float]:
@@ -213,3 +213,72 @@ def bloch_to_html(x: float, y: float, z: float, title: str = "Bloch Sphere") -> 
 </body>
 </html>"""
     return html
+
+
+def state_purity(rho: np.ndarray) -> float:
+    """
+    Compute purity of a quantum state: Tr(rho^2).
+
+    Args:
+        rho: Density matrix of shape (d, d).
+
+    Returns:
+        Purity as a float in [1/d, 1.0].
+    """
+    return float(np.real(np.trace(rho @ rho)))
+
+
+def state_entropy(rho: np.ndarray) -> float:
+    """
+    Compute Von Neumann entropy of a quantum state: -Tr(rho * log2(rho)).
+
+    Args:
+        rho: Density matrix of shape (d, d).
+
+    Returns:
+        Entropy as a float.
+    """
+    # Use eigvalsh as density matrix is Hermitian
+    eigenvals = np.linalg.eigvalsh(rho)
+    # Clip negative values due to numerical precision, keep only positive ones
+    eigenvals = eigenvals[eigenvals > 1e-12]
+    if len(eigenvals) == 0:
+        return 0.0
+    return float(-np.sum(eigenvals * np.log2(eigenvals)))
+
+
+def matrix_sqrt(matrix: np.ndarray) -> np.ndarray:
+    """
+    Compute positive semidefinite matrix square root of a Hermitian matrix.
+
+    Args:
+        matrix: Hermitian matrix (d, d).
+
+    Returns:
+        Square root matrix (d, d).
+    """
+    vals, vecs = np.linalg.eigh(matrix)
+    vals = np.clip(vals, 0, None)
+    return vecs @ np.diag(np.sqrt(vals)) @ vecs.conj().T  # type: ignore[no-any-return]
+
+
+def state_fidelity(rho1: np.ndarray, rho2: np.ndarray) -> float:
+    """
+    Compute general quantum state fidelity between two density matrices:
+    F(rho1, rho2) = (Tr(sqrt(sqrt(rho1) * rho2 * sqrt(rho1))))^2.
+
+    Args:
+        rho1: First density matrix (d, d).
+        rho2: Second density matrix (d, d).
+
+    Returns:
+        Fidelity as a float in [0.0, 1.0].
+    """
+    if rho1.shape != rho2.shape:
+        raise ValueError(f"Matrices must have matching shapes, got {rho1.shape} and {rho2.shape}")
+        
+    sqrt_rho1 = matrix_sqrt(rho1)
+    temp = sqrt_rho1 @ rho2 @ sqrt_rho1
+    sqrt_temp = matrix_sqrt(temp)
+    
+    return float(np.real(np.trace(sqrt_temp)) ** 2)

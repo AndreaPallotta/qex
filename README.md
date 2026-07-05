@@ -1,21 +1,24 @@
 # qex
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/AndreaPallotta/qex/main/assets/logo.png" alt="qex logo" width="200"/>
+  <img src="https://raw.githubusercontent.com/AndreaPallotta/qex/main/assets/logo.jpg" alt="qex logo" width="200"/>
+  <p><strong>A lightweight experiment-runner and lab notebook for quantum computing, built on top of Cirq.</strong></p>
 </div>
 
-A lightweight experiment-runner and lab notebook for quantum computing, built on top of Cirq.
+---
 
-## Overview
+`qex` decouples your quantum experiment definitions from execution backends, persisting your runs in a local SQLite database and providing a visual web dashboard to analyze state metrics, density matrices, and compare state fidelities side-by-side.
 
-`qex` is designed for running quantum experiments, tracking results, and visualizing outcomes. It focuses on reproducibility, persistence, and visualization rather than being a general-purpose quantum framework.
+## Key Features
 
-**Key Features:**
-- 🧪 **Experiment Management**: Define parametric quantum circuits and run them systematically
-- 💾 **Result Persistence**: Store runs, results, and metadata in SQLite
-- 📊 **Visualization**: Automatic Bloch sphere visualization for 1-qubit states
-- 🔬 **Reproducibility**: All parameters and results are stored for later analysis
-- 🚀 **Simple API**: Minimal, opinionated design focused on experiments
+- 🧪 **Experiment Abstraction**: Define parameterized quantum circuits independent of physical backends.
+- 💾 **SQLite Lab Notebook**: All runs, timestamps, parameters, backends, and density matrices are tracked and stored automatically.
+- 📉 **Noisy Simulation Backend**: Run ideal simulations or inject custom physical depolarizing noise.
+- 📐 **Quantum State Metrics**: Real-time evaluation of **Purity** and **Von Neumann Entropy** for simulated mixed states.
+- 📊 **Interactive Web Dashboard**: Beautiful dark-mode SPA visualizer containing a 3D Bloch sphere (Three.js), density matrix grids, and run creators.
+- ⚖️ **Side-by-Side Run Comparison**: Compare any two runs side-by-side and compute their quantum **State Fidelity**.
+- 💻 **Robust CLI Tool**: Start the UI server, list runs, execute experiments, and open visualizations from the terminal.
+- 📡 **Multi-Qubit Scaling**: Simulate circuits from 1 up to **10 qubits** ($1024 \times 1024$ density matrix dimension) with grid rendering performance optimization.
 
 ## Installation
 
@@ -25,47 +28,48 @@ pip install qex
 
 ## Quick Start
 
+### 1. Define and Run an Experiment in Python
 ```python
-from qex import CirqBackend, Runner, ResultStore
-from qex.demos import hadamard_experiment
-from pathlib import Path
+import cirq
+from qex import CirqBackend, Runner, ResultStore, Experiment
 
-# Setup
+# 1. Define a parameterized experiment (e.g. Hadamard on N qubits)
+def multi_hadamard():
+    def builder(qubits, params):
+        return cirq.Circuit(cirq.H(q) for q in qubits)
+    return Experiment(name="multi_hadamard", builder=builder)
+
+# 2. Setup the runner and database store
 backend = CirqBackend()
-runner = Runner(backend)
-store = ResultStore(Path("qex_data/qex.db"))
+runner = Runner(backend, base_dir="qex_data")
+store = ResultStore("qex_data/qex.db")
 
-# Run an experiment
-experiment = hadamard_experiment()
-record = runner.run(experiment, params={})
+# 3. Simulate a 3-qubit execution
+qubits = [cirq.GridQubit(0, i) for i in range(3)]
+record = runner.run(multi_hadamard(), params={}, config={"qubits": qubits})
 
-# Persist results
+# 4. Save to your lab notebook
 store.save_run(record)
-
-# Retrieve and view
-runs = store.list_runs(experiment_name="hadamard")
-rho = runs[0].get_density_matrix()
-print(f"Density matrix:\n{rho}")
-
 store.close()
 ```
 
-## Built-in Experiments
+### 2. Control via CLI
+```bash
+# List all executed runs in the notebook
+qex list
 
-`qex` includes three demo experiments for validation:
+# Execute a new run with depolarizing noise (p = 0.05) on 4 qubits
+qex run hadamard --qubits 4 --noise 0.05
 
-- **X Gate**: `|0⟩ → X → |1⟩` - Simple bit flip
-- **Hadamard**: `|0⟩ → H → superposition` - Creates equal superposition
-- **Ry Sweep**: `|0⟩ → Ry(θ)` - Rotation around Y-axis with parameter `theta`
+# Open a 3D Bloch Sphere visualization in the browser
+qex view <run_id>
+```
 
-## Current Scope (MVP)
-
-- ✅ 1-qubit experiments only
-- ✅ Ideal simulation (no noise)
-- ✅ Density matrix results
-- ✅ SQLite persistence
-- ✅ Bloch sphere HTML visualization
-- ✅ Cirq-based backend
+### 3. Open the Interactive Web Dashboard
+```bash
+qex ui
+```
+This launches a local server on port 8000. Use the visual dashboard to run new circuits, view 3D Bloch vectors, analyze purity/entropy, and toggle **Compare Mode** to check quantum state fidelity between different ideal and noisy runs.
 
 ## Requirements
 
@@ -76,3 +80,8 @@ store.close()
 ## License
 
 Apache License 2.0
+
+## FYI / Disclaimer
+
+> [!NOTE]
+> The author is not a professional physicist. This library is built as an exploratory workspace, educational tool, and local lab notebook. It may contain bugs, experimental behaviors, or mathematical/physical inconsistencies. Contributions and corrections are highly welcome!

@@ -11,14 +11,20 @@ import numpy as np
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from qex import CirqBackend, Runner, ResultStore
+from qex import CirqBackend, Runner, ResultStore, NoisyCirqBackend
 from qex.demos import (
     x_gate_experiment,
     hadamard_experiment,
     ry_sweep_experiment,
     bell_state_experiment,
 )
-from qex.bloch import density_matrix_to_bloch, reduced_density_matrix
+from qex.bloch import (
+    density_matrix_to_bloch,
+    reduced_density_matrix,
+    state_purity,
+    state_entropy,
+    state_fidelity,
+)
 
 
 def test_x_gate():
@@ -253,6 +259,83 @@ def test_bell_state():
     return True
 
 
+def test_advanced_features():
+    """Test purity, entropy, NoisyCirqBackend, and state fidelity calculation"""
+    print("Test 6: Advanced Metrics, Noisy Simulation & Fidelity")
+    print("-" * 50)
+    
+    # 1. Test metrics on pure state
+    rho_pure = np.array([[0, 0], [0, 1]], dtype=complex) # |1><1|
+    purity_pure = state_purity(rho_pure)
+    entropy_pure = state_entropy(rho_pure)
+    print(f"Pure state (|1⟩) -> Purity: {purity_pure:.4f}, Entropy: {entropy_pure:.4f}")
+    if not np.isclose(purity_pure, 1.0) or not np.isclose(entropy_pure, 0.0):
+        print("✗ Pure state metrics incorrect")
+        return False
+    print("✓ Pure state metrics correct")
+
+    # 2. Test metrics on maximally mixed state
+    rho_mixed = np.array([[0.5, 0], [0, 0.5]], dtype=complex) # I/2
+    purity_mixed = state_purity(rho_mixed)
+    entropy_mixed = state_entropy(rho_mixed)
+    print(f"Mixed state (I/2) -> Purity: {purity_mixed:.4f}, Entropy: {entropy_mixed:.4f}")
+    if not np.isclose(purity_mixed, 0.5) or not np.isclose(entropy_mixed, 1.0):
+        print("✗ Mixed state metrics incorrect")
+        return False
+    print("✓ Mixed state metrics correct")
+
+    # 3. Test Noisy Backend simulation
+    exp = hadamard_experiment()
+    backend_ideal = CirqBackend()
+    backend_noisy = NoisyCirqBackend(p=0.1) # 10% depolarizing noise
+    
+    rho_ideal = backend_ideal.run(exp.build_circuit([cirq.GridQubit(0, 0)], {}))
+    rho_noisy = backend_noisy.run(exp.build_circuit([cirq.GridQubit(0, 0)], {}))
+    
+    purity_noisy = state_purity(rho_noisy)
+    entropy_noisy = state_entropy(rho_noisy)
+    
+    print(f"Noisy Hadamard state -> Purity: {purity_noisy:.4f}, Entropy: {entropy_noisy:.4f}")
+    if purity_noisy >= 1.0 or entropy_noisy <= 0.0:
+        print("✗ Noisy state metrics failed to show mixed properties")
+        return False
+    print("✓ Noisy backend correctly produced mixed state")
+
+    # 4. Test State Fidelity
+    fid_self = state_fidelity(rho_ideal, rho_ideal)
+    fid_orthogonal = state_fidelity(np.array([[1, 0], [0, 0]]), np.array([[0, 0], [0, 1]]))
+    fid_noisy = state_fidelity(rho_ideal, rho_noisy)
+    
+    print(f"Fidelity(ideal, ideal): {fid_self:.4f}")
+    print(f"Fidelity(|0⟩, |1⟩): {fid_orthogonal:.4f}")
+    print(f"Fidelity(ideal, noisy): {fid_noisy:.4f}")
+    
+    if not np.isclose(fid_self, 1.0):
+        print("✗ Fidelity of self-state must be 1.0")
+        return False
+    if not np.isclose(fid_orthogonal, 0.0):
+        print("✗ Fidelity of orthogonal states must be 0.0")
+        return False
+    if fid_noisy <= 0.0 or fid_noisy >= 1.0:
+        print("✗ Noisy fidelity must be strictly in (0, 1)")
+        return False
+    print("✓ State fidelity calculations correct")
+    
+    # 5. Test 10-qubit GHZ state simulation
+    print("Simulating 10-qubit GHZ state...")
+    qubits_10 = [cirq.GridQubit(0, i) for i in range(10)]
+    exp_ghz = bell_state_experiment()
+    rho_ghz = backend_ideal.run(exp_ghz.build_circuit(qubits_10, {}))
+    print(f"10-qubit GHZ density matrix shape: {rho_ghz.shape}")
+    if rho_ghz.shape != (1024, 1024):
+        print("✗ 10-qubit GHZ simulation returned wrong density matrix shape")
+        return False
+    print("✓ 10-qubit GHZ simulation successful")
+    
+    print()
+    return True
+
+
 def main():
     """Run all tests"""
     print("=" * 50)
@@ -266,6 +349,7 @@ def main():
         test_ry_sweep,
         test_persistence,
         test_bell_state,
+        test_advanced_features,
     ]
     
     results = []

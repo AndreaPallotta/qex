@@ -3,7 +3,6 @@ Backend abstraction: interface for executing quantum circuits.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any
 import cirq
 import numpy as np
 
@@ -78,3 +77,48 @@ class CirqBackend(Backend):
             "cirq_ideal"
         """
         return "cirq_ideal"
+
+
+class NoisyCirqBackend(Backend):
+    """
+    Concrete backend using Cirq's density matrix simulator for noisy simulation.
+
+    Simulates noisy circuits. Noise model can be configured; defaults to depolarizing noise.
+    """
+
+    def __init__(self, p: float = 0.0):
+        """
+        Initialize the noisy backend with depolarizing noise parameter.
+
+        Args:
+            p: Depolarizing noise probability. Must be in [0.0, 1.0].
+        """
+        self._simulator = cirq.DensityMatrixSimulator()
+        self.p = p
+
+    def run(self, circuit: cirq.Circuit) -> np.ndarray:
+        """
+        Execute circuit with depolarizing noise and return density matrix.
+
+        Args:
+            circuit: A Cirq Circuit (any number of qubits).
+
+        Returns:
+            Density matrix (2**n x 2**n for n qubits, complex dtype).
+        """
+        if self.p > 0.0:
+            noisy_circuit = circuit.with_noise(cirq.depolarize(self.p))
+        else:
+            noisy_circuit = circuit
+
+        result = self._simulator.simulate(noisy_circuit)
+        return result.final_density_matrix
+
+    def get_name(self) -> str:
+        """
+        Get backend name.
+
+        Returns:
+            "cirq_noisy_<p>"
+        """
+        return f"cirq_noisy_{self.p:.4f}"

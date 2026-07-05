@@ -58,19 +58,19 @@ def ry_sweep_experiment() -> Experiment:
 
 def bell_state_experiment() -> Experiment:
     """
-    Demo: Create Bell state |Φ⁺⟩ = (|00⟩ + |11⟩)/√2
+    Demo: Create Bell state (for 2 qubits) or GHZ state (for N qubits).
 
-    Applies H on first qubit then CNOT(control=qubits[0], target=qubits[1]).
+    Applies H on first qubit, then CNOT sequentially to form entangled state.
 
     Returns:
-        Experiment with no parameters (uses 2 qubits).
+        Experiment with no parameters (uses N qubits).
     """
     def builder(qubits: Sequence[cirq.Qid], params: Dict[str, Any]) -> cirq.Circuit:
-        if len(qubits) < 2:
-            raise ValueError("Bell state experiment requires at least 2 qubits")
-        return cirq.Circuit(
-            cirq.H(qubits[0]),
-            cirq.CNOT(qubits[0], qubits[1]),
-        )
+        if not qubits:
+            raise ValueError("Bell/GHZ state experiment requires at least 1 qubit")
+        operations = [cirq.H(qubits[0])]
+        for i in range(len(qubits) - 1):
+            operations.append(cirq.CNOT(qubits[i], qubits[i+1]))
+        return cirq.Circuit(operations)
 
     return Experiment(name="bell_state", builder=builder)

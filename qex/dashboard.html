@@ -1,0 +1,1732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>qex | Quantum Experiment Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Three.js for 3D Bloch Sphere -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0b0c10;
+            --bg-card: rgba(31, 40, 51, 0.45);
+            --bg-card-hover: rgba(31, 40, 51, 0.65);
+            --border-glow: rgba(102, 252, 241, 0.15);
+            --border-glow-active: rgba(102, 252, 241, 0.4);
+            --primary: #66fcf1;
+            --primary-dark: #45f3e5;
+            --secondary: #c5a1ff;
+            --text-main: #c5c6c7;
+            --text-bright: #ffffff;
+            --text-muted: #858688;
+            --gradient-accent: linear-gradient(135deg, #66fcf1 0%, #4b0082 100%);
+            --gradient-card: linear-gradient(135deg, rgba(31, 40, 51, 0.6) 0%, rgba(20, 24, 33, 0.6) 100%);
+            --gradient-compare: linear-gradient(135deg, #c5a1ff 0%, #4b0082 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(at 10% 20%, rgba(102, 252, 241, 0.05) 0px, transparent 50%),
+                radial-gradient(at 90% 80%, rgba(197, 161, 255, 0.05) 0px, transparent 50%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(11, 12, 16, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(102, 252, 241, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(102, 252, 241, 0.4);
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            background: rgba(11, 12, 16, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(102, 252, 241, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--gradient-accent);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: var(--bg-dark);
+            font-size: 1.2rem;
+            box-shadow: 0 0 15px rgba(102, 252, 241, 0.4);
+        }
+
+        .logo-text {
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            background: linear-gradient(90deg, #66fcf1, #c5a1ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(102, 252, 241, 0.08);
+            border: 1px solid rgba(102, 252, 241, 0.2);
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--primary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--primary);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+
+        /* Main Workspace */
+        .workspace {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            flex-grow: 1;
+            height: calc(100vh - 78px);
+        }
+
+        /* Left Panel - History */
+        .sidebar {
+            background: rgba(15, 20, 30, 0.6);
+            border-right: 1px solid rgba(102, 252, 241, 0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid rgba(102, 252, 241, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-bright);
+            margin-bottom: 4px;
+        }
+
+        .sidebar-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Toggle Button for Compare Mode */
+        .btn-toggle-compare {
+            background: rgba(197, 161, 255, 0.1);
+            border: 1px solid rgba(197, 161, 255, 0.2);
+            color: var(--secondary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-toggle-compare.active {
+            background: var(--secondary);
+            color: var(--bg-dark);
+            box-shadow: 0 0 10px rgba(197, 161, 255, 0.3);
+        }
+
+        .run-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .run-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .run-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: transparent;
+            transition: all 0.3s;
+        }
+
+        .run-card:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(102, 252, 241, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .run-card.active {
+            background: rgba(102, 252, 241, 0.05);
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(102, 252, 241, 0.1);
+        }
+
+        .run-card.active::before {
+            background: var(--primary);
+        }
+
+        /* Checkbox wrapper for comparison mode */
+        .compare-checkbox-container {
+            display: none;
+            align-items: center;
+        }
+
+        .compare-checkbox {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--text-muted);
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .compare-checkbox:checked {
+            background: var(--secondary);
+            border-color: var(--secondary);
+        }
+
+        .compare-checkbox:checked::after {
+            content: '✓';
+            color: var(--bg-dark);
+            font-size: 0.75rem;
+            font-weight: 800;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .run-card-content {
+            flex-grow: 1;
+        }
+
+        .run-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .run-exp-name {
+            font-weight: 600;
+            color: var(--text-bright);
+            font-size: 0.95rem;
+        }
+
+        .run-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .run-id-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            background: rgba(197, 161, 255, 0.1);
+            color: var(--secondary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+
+        .run-params-summary {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Right Panel - Details & Actions */
+        .main-content {
+            padding: 32px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        /* Launch Area */
+        .panel {
+            background: var(--gradient-card);
+            border: 1px solid var(--border-glow);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .panel-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-bright);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(102, 252, 241, 0.1);
+            padding-bottom: 12px;
+        }
+
+        .panel-title::before {
+            content: '';
+            width: 4px;
+            height: 18px;
+            background: var(--primary);
+            border-radius: 2px;
+            display: inline-block;
+        }
+
+        /* Experiment Launcher Grid */
+        .launcher-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .launcher-card {
+            background: rgba(11, 12, 16, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 160px;
+        }
+
+        .launcher-card:hover {
+            border-color: var(--primary);
+            background: rgba(102, 252, 241, 0.03);
+            transform: translateY(-3px);
+        }
+
+        .launcher-card.selected {
+            border-color: var(--primary);
+            background: rgba(102, 252, 241, 0.06);
+            box-shadow: 0 0 15px rgba(102, 252, 241, 0.1);
+        }
+
+        .launcher-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-bright);
+            margin-bottom: 8px;
+        }
+
+        .launcher-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            line-height: 1.4;
+        }
+
+        .launcher-qubits {
+            font-size: 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 8px;
+            border-radius: 20px;
+            align-self: flex-start;
+            color: var(--text-main);
+        }
+
+        /* Parameter Form & Action Grid */
+        .form-container-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .form-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-bright);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .form-input-container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .slider {
+            flex-grow: 1;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--primary);
+            transition: transform 0.1s;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .slider-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 10px;
+            border-radius: 6px;
+            min-width: 60px;
+            text-align: center;
+            color: var(--primary);
+        }
+
+        .slider.secondary-slider::-webkit-slider-thumb {
+            background: var(--secondary);
+            box-shadow: 0 0 8px var(--secondary);
+        }
+        
+        .slider-value.secondary-value {
+            color: var(--secondary);
+        }
+
+        .slider.accent-slider::-webkit-slider-thumb {
+            background: #ffffff;
+            box-shadow: 0 0 8px #ffffff;
+        }
+
+        .slider-value.accent-value {
+            color: #ffffff;
+        }
+
+        .btn-run {
+            background: var(--gradient-accent);
+            color: var(--bg-dark);
+            border: none;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 20px rgba(102, 252, 241, 0.2);
+            align-self: flex-start;
+        }
+
+        .btn-run:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(102, 252, 241, 0.4);
+            filter: brightness(1.1);
+        }
+
+        .btn-run:active {
+            transform: translateY(0);
+        }
+
+        /* Results Display Section */
+        .results-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+
+        @media (max-width: 1000px) {
+            .results-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Density Matrix Panel */
+        .matrix-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 320px;
+            position: relative;
+        }
+
+        .matrix-grid {
+            display: grid;
+            gap: 8px;
+            background: rgba(11, 12, 16, 0.3);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .matrix-cell {
+            width: 100px;
+            height: 100px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            cursor: pointer;
+        }
+
+        .matrix-cell:hover {
+            transform: scale(1.05);
+            z-index: 10;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            border-color: rgba(102, 252, 241, 0.4);
+        }
+
+        .matrix-cell-val {
+            font-weight: 700;
+            color: var(--text-bright);
+        }
+
+        .matrix-cell-complex {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* 3D Bloch Sphere Panel */
+        .bloch-container {
+            width: 100%;
+            height: 320px;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            background: #111318;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        #bloch-canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .bloch-canvas-box {
+            width: 100%;
+            height: 100%;
+        }
+
+        .bloch-coords-overlay {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(11, 12, 16, 0.85);
+            border: 1px solid rgba(102, 252, 241, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            display: flex;
+            gap: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            z-index: 10;
+            backdrop-filter: blur(6px);
+        }
+
+        .coord-label {
+            color: var(--text-muted);
+        }
+
+        .coord-val {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        /* Placeholder state */
+        .no-selection {
+            grid-column: span 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            text-align: center;
+            color: var(--text-muted);
+            background: var(--gradient-card);
+            border: 1px dashed var(--border-glow);
+            border-radius: 16px;
+        }
+
+        .no-selection-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            animation: bounce 3s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Details info area */
+        .run-details-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .run-details-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-bright);
+        }
+
+        .run-details-meta {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .divider {
+            width: 1px;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Comparison Panel styling */
+        .comparison-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-top: 24px;
+        }
+
+        @media (max-width: 1200px) {
+            .comparison-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .comparison-fidelity-header {
+            background: rgba(197, 161, 255, 0.08);
+            border: 1px solid rgba(197, 161, 255, 0.2);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 24px;
+            box-shadow: 0 0 20px rgba(197, 161, 255, 0.05);
+        }
+
+        .fidelity-title {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .fidelity-value {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, var(--secondary), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .compare-run-column {
+            background: rgba(11, 12, 16, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 14px;
+            padding: 20px;
+        }
+
+        .compare-run-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-bright);
+            margin-bottom: 8px;
+        }
+
+        .compare-run-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Toast notifications */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: rgba(20, 24, 33, 0.95);
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            padding: 16px 24px;
+            box-shadow: 0 10px 30px rgba(102, 252, 241, 0.15);
+            color: var(--text-bright);
+            transform: translateY(150%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+        }
+
+        .performance-fallback {
+            color: var(--text-muted);
+            text-align: center;
+            font-size: 0.9rem;
+            padding: 24px;
+            background: rgba(11, 12, 16, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            line-height: 1.6;
+        }
+
+        .performance-highlight {
+            color: var(--secondary);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-container">
+            <div class="logo-icon">q</div>
+            <div class="logo-text">qex</div>
+        </div>
+        <div class="status-badge">
+            <div class="status-dot"></div>
+            <span>Connected to Local Lab</span>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <!-- Runs History List (Sidebar) -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div>
+                    <h2 class="sidebar-title">Experiment Runs</h2>
+                    <p class="sidebar-subtitle">Lab Notebook & Persistence</p>
+                </div>
+                <button class="btn-toggle-compare" id="toggle-compare-btn" onclick="toggleCompareMode()">Compare</button>
+            </div>
+            <div class="run-list" id="runs-container">
+                <!-- Loaded dynamically -->
+            </div>
+        </div>
+
+        <!-- Main Workbench -->
+        <div class="main-content">
+            <!-- Launch Experiment Panel -->
+            <div class="panel">
+                <h2 class="panel-title">Run Quantum Experiment</h2>
+                
+                <div class="launcher-grid">
+                    <div class="launcher-card selected" data-experiment="hadamard" onclick="selectExperiment('hadamard')">
+                        <div>
+                            <div class="launcher-name">Hadamard</div>
+                            <div class="launcher-desc">Create equal superposition |+⟩ state from |0⟩</div>
+                        </div>
+                        <span class="launcher-qubits">1-10 Qubits</span>
+                    </div>
+                    <div class="launcher-card" data-experiment="x_gate" onclick="selectExperiment('x_gate')">
+                        <div>
+                            <div class="launcher-name">X Gate</div>
+                            <div class="launcher-desc">Simple bit-flip operation mapping |0⟩ to |1⟩</div>
+                        </div>
+                        <span class="launcher-qubits">1-10 Qubits</span>
+                    </div>
+                    <div class="launcher-card" data-experiment="ry_sweep" onclick="selectExperiment('ry_sweep')">
+                        <div>
+                            <div class="launcher-name">Ry Sweep</div>
+                            <div class="launcher-desc">Parametric Y-axis rotation sweep by angle θ</div>
+                        </div>
+                        <span class="launcher-qubits">1-10 Qubits</span>
+                    </div>
+                    <div class="launcher-card" data-experiment="bell_state" onclick="selectExperiment('bell_state')">
+                        <div>
+                            <div class="launcher-name">Bell / GHZ State</div>
+                            <div class="launcher-desc">Create entangled state (|00...0⟩ + |11...1⟩)/√2</div>
+                        </div>
+                        <span class="launcher-qubits">2-10 Qubits</span>
+                    </div>
+                </div>
+
+                <div class="form-container-grid">
+                    <!-- Qubit Count Slider -->
+                    <div class="form-section" id="qubits-section">
+                        <label class="form-label" for="qubits-slider">Number of Qubits (N):</label>
+                        <div class="form-input-container">
+                            <input type="range" min="1" max="10" step="1" value="1" class="slider accent-slider" id="qubits-slider" oninput="updateQubitsSliderValue(this.value)">
+                            <div class="slider-value accent-value" id="qubits-value">1</div>
+                            <span style="font-size: 0.8rem; color: var(--text-muted)">qubits (1 to 10)</span>
+                        </div>
+                    </div>
+
+                    <!-- Rotation Angle Slider (conditional) -->
+                    <div class="form-section" id="params-section" style="display: none;">
+                        <label class="form-label" for="theta-slider">Rotation Angle (θ):</label>
+                        <div class="form-input-container">
+                            <input type="range" min="0" max="6.28318" step="0.0785" value="1.5708" class="slider" id="theta-slider" oninput="updateSliderValue(this.value)">
+                            <div class="slider-value" id="theta-value">1.5708</div>
+                            <span style="font-size: 0.8rem; color: var(--text-muted)">rad (π/2 ≈ 1.57)</span>
+                        </div>
+                    </div>
+
+                    <!-- Depolarizing Noise Slider -->
+                    <div class="form-section" id="noise-section">
+                        <label class="form-label" for="noise-slider">Depolarizing Noise Probability (p):</label>
+                        <div class="form-input-container">
+                            <input type="range" min="0" max="0.2" step="0.01" value="0.0" class="slider secondary-slider" id="noise-slider" oninput="updateNoiseSliderValue(this.value)">
+                            <div class="slider-value secondary-value" id="noise-value">0.00</div>
+                            <span style="font-size: 0.8rem; color: var(--text-muted)">prob (0 = ideal)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 24px;">
+                    <button class="btn-run" onclick="executeCurrentExperiment()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        Run Circuit Simulation
+                    </button>
+                </div>
+            </div>
+
+            <!-- Run Results Details (Visualizers) -->
+            <div class="panel" id="results-panel">
+                <div class="no-selection" id="placeholder-pane">
+                    <div class="no-selection-icon">🔬</div>
+                    <h3 id="placeholder-title">No Experiment Selected</h3>
+                    <p id="placeholder-text">Select a run from the history panel or launch a new simulation circuit above.</p>
+                </div>
+
+                <!-- Single Run Details View -->
+                <div id="details-pane" style="display: none;">
+                    <div class="run-details-header">
+                        <div>
+                            <h2 class="run-details-title" id="det-name">Hadamard Experiment</h2>
+                            <div class="run-details-meta">
+                                <span id="det-id">ID: 8164f3d9</span>
+                                <div class="divider"></div>
+                                <span id="det-time">2026-07-05 14:09:22</span>
+                                <div class="divider"></div>
+                                <span id="det-backend">cirq_ideal</span>
+                                <div class="divider"></div>
+                                <span>Purity: <strong id="det-purity" style="color: var(--primary)">1.000</strong></span>
+                                <div class="divider"></div>
+                                <span>Entropy: <strong id="det-entropy" style="color: var(--secondary)">0.000</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="results-section">
+                        <!-- Density Matrix Grid -->
+                        <div>
+                            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text-bright); margin-bottom: 16px;">Density Matrix (ρ)</h3>
+                            <div class="matrix-container">
+                                <div class="matrix-grid" id="matrix-grid-element">
+                                    <!-- Rendered dynamically -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3D Bloch Sphere Visualizer -->
+                        <div>
+                            <h3 id="bloch-panel-title" style="font-size: 1rem; font-weight: 600; color: var(--text-bright); margin-bottom: 16px;">Bloch Sphere Representation</h3>
+                            <div class="bloch-container">
+                                <div id="bloch-canvas-container" class="bloch-canvas-box"></div>
+                                <div class="bloch-coords-overlay" id="bloch-coords-element" style="display: none;">
+                                    <div><span class="coord-label">x:</span> <span class="coord-val" id="coord-x">0.0000</span></div>
+                                    <div><span class="coord-label">y:</span> <span class="coord-val" id="coord-y">0.0000</span></div>
+                                    <div><span class="coord-label">z:</span> <span class="coord-val" id="coord-z">0.0000</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparison View -->
+                <div id="compare-pane" style="display: none;">
+                    <div class="comparison-fidelity-header">
+                        <div class="fidelity-title">Quantum State Fidelity</div>
+                        <div class="fidelity-value" id="comp-fidelity-val">0.0000</div>
+                    </div>
+
+                    <div class="comparison-layout">
+                        <!-- Run 1 Column -->
+                        <div class="compare-run-column">
+                            <div class="compare-run-name" id="comp-run1-name">Run 1</div>
+                            <div class="compare-run-meta" id="comp-run1-meta">ID: ... | cirq_ideal</div>
+                            
+                            <h4 style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-bright)">Density Matrix & Metrics</h4>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">
+                                Purity: <strong id="comp-run1-purity" style="color: var(--primary)">1.000</strong> &nbsp;|&nbsp;
+                                Entropy: <strong id="comp-run1-entropy" style="color: var(--secondary)">0.000</strong>
+                            </div>
+                            
+                            <div class="matrix-container" style="height: 200px;">
+                                <div class="matrix-grid" id="comp-run1-matrix" style="padding: 8px; gap: 4px;"></div>
+                            </div>
+                            
+                            <div class="bloch-container" style="height: 200px; margin-top: 16px;">
+                                <div id="comp-run1-bloch" class="bloch-canvas-box"></div>
+                            </div>
+                        </div>
+
+                        <!-- Run 2 Column -->
+                        <div class="compare-run-column">
+                            <div class="compare-run-name" id="comp-run2-name">Run 2</div>
+                            <div class="compare-run-meta" id="comp-run2-meta">ID: ... | cirq_noisy_0.05</div>
+                            
+                            <h4 style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-bright)">Density Matrix & Metrics</h4>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">
+                                Purity: <strong id="comp-run2-purity" style="color: var(--primary)">1.000</strong> &nbsp;|&nbsp;
+                                Entropy: <strong id="comp-run2-entropy" style="color: var(--secondary)">0.000</strong>
+                            </div>
+                            
+                            <div class="matrix-container" style="height: 200px;">
+                                <div class="matrix-grid" id="comp-run2-matrix" style="padding: 8px; gap: 4px;"></div>
+                            </div>
+                            
+                            <div class="bloch-container" style="height: 200px; margin-top: 16px;">
+                                <div id="comp-run2-bloch" class="bloch-canvas-box"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast-notification">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <span id="toast-message">Simulation run successfully!</span>
+    </div>
+
+    <script>
+        let selectedExp = 'hadamard';
+        let currentRuns = [];
+        let activeRunId = null;
+        let isCompareMode = false;
+        let selectedCompareIds = [];
+
+        // Three.js scene globals for Single view
+        let scene, camera, renderer, sphere, wireframeLine, axesHelper, pointMarker, lineMarker;
+        let isThreeInitialized = false;
+        let animationFrameId = null;
+
+        // Three.js scene globals for Compare view
+        let scene1, camera1, renderer1, pointMarker1, lineMarker1, animFrameId1;
+        let scene2, camera2, renderer2, pointMarker2, lineMarker2, animFrameId2;
+        let isThree1Initialized = false;
+        let isThree2Initialized = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchRuns();
+            selectExperiment('hadamard');
+        });
+
+        function showToast(message) {
+            const toast = document.getElementById('toast-notification');
+            document.getElementById('toast-message').innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3500);
+        }
+
+        function updateSliderValue(val) {
+            document.getElementById('theta-value').innerText = parseFloat(val).toFixed(4);
+        }
+
+        function updateNoiseSliderValue(val) {
+            document.getElementById('noise-value').innerText = parseFloat(val).toFixed(2);
+        }
+
+        function updateQubitsSliderValue(val) {
+            document.getElementById('qubits-value').innerText = parseInt(val);
+        }
+
+        function selectExperiment(expName) {
+            selectedExp = expName;
+            
+            // Highlight selected card
+            document.querySelectorAll('.launcher-card').forEach(card => {
+                if (card.dataset.experiment === expName) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+
+            // Show/hide parameter sections
+            const paramsSection = document.getElementById('params-section');
+            if (expName === 'ry_sweep') {
+                paramsSection.style.display = 'block';
+            } else {
+                paramsSection.style.display = 'none';
+            }
+
+            // Adjust Qubits Slider range and defaults
+            const qubitsSlider = document.getElementById('qubits-slider');
+            if (expName === 'bell_state') {
+                qubitsSlider.min = 2;
+                if (parseInt(qubitsSlider.value) < 2) {
+                    qubitsSlider.value = 2;
+                    updateQubitsSliderValue(2);
+                }
+            } else {
+                qubitsSlider.min = 1;
+            }
+        }
+
+        function toggleCompareMode() {
+            isCompareMode = !isCompareMode;
+            selectedCompareIds = [];
+            
+            const btn = document.getElementById('toggle-compare-btn');
+            const checkboxes = document.querySelectorAll('.compare-checkbox-container');
+            const runCards = document.querySelectorAll('.run-card');
+
+            if (isCompareMode) {
+                btn.classList.add('active');
+                btn.innerText = 'Exit Compare';
+                checkboxes.forEach(c => c.style.display = 'flex');
+                
+                // Set placeholder text for comparison selection
+                document.getElementById('placeholder-pane').style.display = 'flex';
+                document.getElementById('details-pane').style.display = 'none';
+                document.getElementById('compare-pane').style.display = 'none';
+                document.getElementById('placeholder-title').innerText = 'Fidelity Analysis Mode';
+                document.getElementById('placeholder-text').innerText = 'Select exactly two runs from the list in the sidebar to compare their density matrices and compute fidelity.';
+                
+                // Clear selection states
+                runCards.forEach(c => c.classList.remove('active'));
+                document.querySelectorAll('.compare-checkbox').forEach(c => c.checked = false);
+            } else {
+                btn.classList.remove('active');
+                btn.innerText = 'Compare';
+                checkboxes.forEach(c => c.style.display = 'none');
+                
+                document.getElementById('placeholder-title').innerText = 'No Experiment Selected';
+                document.getElementById('placeholder-text').innerText = 'Select a run from the history panel or launch a new simulation circuit above.';
+                
+                // Clean up comparison scenes
+                cleanThreeCompare();
+
+                // Restore active run if possible
+                if (currentRuns.length > 0) {
+                    displayRunDetails(currentRuns[0].run_id);
+                } else {
+                    document.getElementById('placeholder-pane').style.display = 'flex';
+                    document.getElementById('details-pane').style.display = 'none';
+                    document.getElementById('compare-pane').style.display = 'none';
+                }
+            }
+        }
+
+        function handleCheckboxClick(event, runId) {
+            event.stopPropagation();
+            const checkbox = event.target;
+            
+            if (checkbox.checked) {
+                if (selectedCompareIds.length >= 2) {
+                    // Uncheck the oldest one
+                    const oldestId = selectedCompareIds.shift();
+                    const oldCheckbox = document.querySelector(`.compare-checkbox[data-id="${oldestId}"]`);
+                    if (oldCheckbox) oldCheckbox.checked = false;
+                    
+                    const oldCard = document.querySelector(`.run-card[data-id="${oldestId}"]`);
+                    if (oldCard) oldCard.classList.remove('active');
+                }
+                selectedCompareIds.push(runId);
+                checkbox.closest('.run-card').classList.add('active');
+            } else {
+                selectedCompareIds = selectedCompareIds.filter(id => id !== runId);
+                checkbox.closest('.run-card').classList.remove('active');
+            }
+
+            if (selectedCompareIds.length === 2) {
+                displayComparison(selectedCompareIds[0], selectedCompareIds[1]);
+            } else {
+                document.getElementById('placeholder-pane').style.display = 'flex';
+                document.getElementById('compare-pane').style.display = 'none';
+                cleanThreeCompare();
+            }
+        }
+
+        function handleRunCardClick(runId) {
+            if (isCompareMode) {
+                const checkbox = document.querySelector(`.compare-checkbox[data-id="${runId}"]`);
+                if (checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                    // Trigger handler manually
+                    const dummyEvent = { target: checkbox, stopPropagation: () => {} };
+                    handleCheckboxClick(dummyEvent, runId);
+                }
+            } else {
+                displayRunDetails(runId);
+            }
+        }
+
+        async function fetchRuns() {
+            try {
+                const response = await fetch('/api/runs');
+                const runs = await response.json();
+                currentRuns = runs;
+                renderRunsList(runs);
+                
+                // If we have runs and none is active, show the first one (only in single mode)
+                if (runs.length > 0 && !activeRunId && !isCompareMode) {
+                    displayRunDetails(runs[0].run_id);
+                }
+            } catch (err) {
+                console.error("Error fetching runs:", err);
+            }
+        }
+
+        function renderRunsList(runs) {
+            const container = document.getElementById('runs-container');
+            container.innerHTML = '';
+
+            if (runs.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-muted); text-align: center; margin-top: 30px; font-size: 0.9rem;">No runs executed yet.</div>';
+                return;
+            }
+
+            runs.forEach(run => {
+                const date = new Date(run.timestamp * 1000);
+                const timeStr = date.toLocaleString();
+                const isActive = (!isCompareMode && run.run_id === activeRunId) || (isCompareMode && selectedCompareIds.includes(run.run_id)) ? 'active' : '';
+                const isChecked = isCompareMode && selectedCompareIds.includes(run.run_id) ? 'checked' : '';
+                
+                let paramsLabel = '';
+                if (Object.keys(run.params).length > 0) {
+                    paramsLabel = Object.entries(run.params).map(([k, v]) => `${k}=${parseFloat(v).toFixed(3)}`).join(', ');
+                } else {
+                    paramsLabel = 'ideal run';
+                }
+
+                // Add qubit count to the parameter description label
+                const totalQubits = run.qubits_count || (run.experiment_name === 'bell_state' ? 2 : 1);
+                paramsLabel = `${totalQubits} Qubit${totalQubits > 1 ? 's' : ''} | ` + paramsLabel;
+
+                const cardHtml = `
+                    <div class="run-card ${isActive}" data-id="${run.run_id}" onclick="handleRunCardClick('${run.run_id}')">
+                        <div class="compare-checkbox-container" style="display: ${isCompareMode ? 'flex' : 'none'};">
+                            <input type="checkbox" class="compare-checkbox" data-id="${run.run_id}" ${isChecked} onclick="handleCheckboxClick(event, '${run.run_id}')">
+                        </div>
+                        <div class="run-card-content">
+                            <div class="run-card-header">
+                                <span class="run-exp-name">${run.experiment_name.replace('_', ' ').toUpperCase()}</span>
+                                <span class="run-time">${date.toLocaleTimeString()}</span>
+                            </div>
+                            <div class="run-id-badge">${run.run_id.substring(0, 8)}</div>
+                            <div class="run-params-summary">${paramsLabel}</div>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', cardHtml);
+            });
+        }
+
+        async function executeCurrentExperiment() {
+            const payload = {
+                experiment: selectedExp,
+                qubits: parseInt(document.getElementById('qubits-slider').value),
+                params: {},
+                noise: parseFloat(document.getElementById('noise-slider').value)
+            };
+
+            if (selectedExp === 'ry_sweep') {
+                const theta = parseFloat(document.getElementById('theta-slider').value);
+                payload.params.theta = theta;
+            }
+
+            try {
+                const btn = document.querySelector('.btn-run');
+                btn.disabled = true;
+                btn.innerHTML = 'Simulating...';
+
+                const response = await fetch('/api/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                btn.disabled = false;
+                btn.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    Run Circuit Simulation
+                `;
+
+                if (result.success) {
+                    showToast(`Simulated ${selectedExp} successfully!`);
+                    if (isCompareMode) {
+                        // Exit compare mode to view the new run
+                        toggleCompareMode();
+                    }
+                    activeRunId = result.record.run_id;
+                    await fetchRuns();
+                    displayRunDetails(result.record.run_id);
+                } else {
+                    showToast(`Error: ${result.error}`);
+                }
+            } catch (err) {
+                console.error("Error executing experiment:", err);
+                showToast("Connection to local server failed.");
+            }
+        }
+
+        async function displayRunDetails(runId) {
+            if (isCompareMode) return;
+            activeRunId = runId;
+            
+            // Update active states in list
+            document.querySelectorAll('.run-card').forEach(card => {
+                if (card.dataset.id === runId) {
+                    card.classList.add('active');
+                } else {
+                    card.classList.remove('active');
+                }
+            });
+
+            const run = currentRuns.find(r => r.run_id === runId);
+            if (!run) return;
+
+            document.getElementById('placeholder-pane').style.display = 'none';
+            document.getElementById('details-pane').style.display = 'block';
+            document.getElementById('compare-pane').style.display = 'none';
+
+            // Set metadata
+            document.getElementById('det-name').innerText = `${run.experiment_name.replace('_', ' ').toUpperCase()} EXPERIMENT`;
+            document.getElementById('det-id').innerText = `ID: ${run.run_id.substring(0, 8)}`;
+            document.getElementById('det-time').innerText = new Date(run.timestamp * 1000).toLocaleString();
+            document.getElementById('det-backend').innerText = run.backend_name;
+
+            // Load and render density matrix
+            try {
+                const response = await fetch(`/api/runs/${runId}/density_matrix`);
+                const matrixData = await response.json();
+                
+                renderDensityMatrix(matrixData.matrix, 'matrix-grid-element');
+                
+                // Show purity and entropy
+                document.getElementById('det-purity').innerText = matrixData.purity.toFixed(4);
+                document.getElementById('det-entropy').innerText = matrixData.entropy.toFixed(4);
+                
+                // Handle Bloch sphere visualization
+                const totalQubits = run.qubits_count || (run.experiment_name === 'bell_state' ? 2 : 1);
+                const isBellOrMulti = totalQubits > 1;
+                const coordsElement = document.getElementById('bloch-coords-element');
+                const canvasContainer = document.getElementById('bloch-canvas-container');
+                const blochTitle = document.getElementById('bloch-panel-title');
+
+                if (isBellOrMulti) {
+                    blochTitle.innerText = `Bloch Sphere (Qubit 0 Reduced of ${totalQubits} Qubits)`;
+                } else {
+                    blochTitle.innerText = "Bloch Sphere Representation";
+                }
+
+                if (matrixData.bloch) {
+                    coordsElement.style.display = 'flex';
+                    document.getElementById('coord-x').innerText = matrixData.bloch.x.toFixed(4);
+                    document.getElementById('coord-y').innerText = matrixData.bloch.y.toFixed(4);
+                    document.getElementById('coord-z').innerText = matrixData.bloch.z.toFixed(4);
+                    
+                    initThreeJS();
+                    updateBlochVector(matrixData.bloch.x, matrixData.bloch.y, matrixData.bloch.z);
+                } else {
+                    coordsElement.style.display = 'none';
+                    canvasContainer.innerHTML = `<div style="color: var(--text-muted); display:flex; align-items:center; justify-content:center; height:100%; font-size:0.9rem;">Multi-qubit representation (${totalQubits} qubits).</div>`;
+                    if (animationFrameId) {
+                        cancelAnimationFrame(animationFrameId);
+                        animationFrameId = null;
+                    }
+                    isThreeInitialized = false;
+                }
+            } catch (err) {
+                console.error("Error loading run detail:", err);
+            }
+        }
+
+        async function displayComparison(id1, id2) {
+            document.getElementById('placeholder-pane').style.display = 'none';
+            document.getElementById('details-pane').style.display = 'none';
+            document.getElementById('compare-pane').style.display = 'block';
+
+            // Clean up single run anim loop
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+                isThreeInitialized = false;
+            }
+
+            try {
+                // Fetch comparison metrics (fidelity)
+                const compResponse = await fetch(`/api/compare?run_id1=${id1}&run_id2=${id2}`);
+                const compData = await compResponse.json();
+
+                if (!compData.success) {
+                    showToast(`Comparison error: ${compData.error}`);
+                    return;
+                }
+
+                document.getElementById('comp-fidelity-val').innerText = compData.fidelity.toFixed(5);
+
+                // Fetch full details of both runs
+                const [r1Response, r2Response] = await Promise.all([
+                    fetch(`/api/runs/${id1}/density_matrix`),
+                    fetch(`/api/runs/${id2}/density_matrix`)
+                ]);
+                
+                const m1 = await r1Response.json();
+                const m2 = await r2Response.json();
+
+                const r1Info = currentRuns.find(r => r.run_id === id1);
+                const r2Info = currentRuns.find(r => r.run_id === id2);
+
+                const q1 = r1Info.qubits_count || (r1Info.experiment_name === 'bell_state' ? 2 : 1);
+                const q2 = r2Info.qubits_count || (r2Info.experiment_name === 'bell_state' ? 2 : 1);
+
+                // Set Run 1 UI
+                document.getElementById('comp-run1-name').innerText = r1Info.experiment_name.replace('_', ' ').toUpperCase();
+                document.getElementById('comp-run1-meta').innerText = `ID: ${r1Info.run_id.substring(0, 8)} | ${q1} Qubits | ${r1Info.backend_name}`;
+                document.getElementById('comp-run1-purity').innerText = m1.purity.toFixed(4);
+                document.getElementById('comp-run1-entropy').innerText = m1.entropy.toFixed(4);
+                renderDensityMatrix(m1.matrix, 'comp-run1-matrix');
+
+                // Set Run 2 UI
+                document.getElementById('comp-run2-name').innerText = r2Info.experiment_name.replace('_', ' ').toUpperCase();
+                document.getElementById('comp-run2-meta').innerText = `ID: ${r2Info.run_id.substring(0, 8)} | ${q2} Qubits | ${r2Info.backend_name}`;
+                document.getElementById('comp-run2-purity').innerText = m2.purity.toFixed(4);
+                document.getElementById('comp-run2-entropy').innerText = m2.entropy.toFixed(4);
+                renderDensityMatrix(m2.matrix, 'comp-run2-matrix');
+
+                // Render Bloch Spheres side by side
+                initCompareThree1(m1.bloch);
+                initCompareThree2(m2.bloch);
+
+            } catch (err) {
+                console.error("Comparison load error:", err);
+            }
+        }
+
+        function renderDensityMatrix(matrix, elementId) {
+            const grid = document.getElementById(elementId);
+            grid.innerHTML = '';
+            
+            const n = matrix.length;
+            const isCompact = elementId !== 'matrix-grid-element';
+
+            // Performance ceiling: if dimension > 8 (i.e. N > 3 qubits), do not render the grid
+            if (n > 8) {
+                const totalQubits = Math.round(Math.log2(n));
+                grid.style.gridTemplateColumns = '1fr';
+                grid.innerHTML = `
+                    <div class="performance-fallback">
+                        <span class="performance-highlight">Density matrix grid rendering is disabled</span> for ${totalQubits} qubits (${n} × ${n} matrix) to optimize performance.<br>
+                        Purity and Entropy calculations remain fully active.
+                    </div>
+                `;
+                return;
+            }
+
+            grid.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++) {
+                    const cVal = matrix[i][j];
+                    const mag = Math.sqrt(cVal.real * cVal.real + cVal.imag * cVal.imag);
+                    
+                    const opacity = Math.max(0.1, mag);
+                    let cellBg = `rgba(102, 252, 241, ${opacity * 0.15})`;
+                    let cellBorder = `rgba(102, 252, 241, ${opacity * 0.2})`;
+                    
+                    if (mag > 0.01) {
+                        cellBg = `rgba(102, 252, 241, ${opacity * 0.25})`;
+                        cellBorder = `rgba(102, 252, 241, ${opacity * 0.5})`;
+                    }
+
+                    let complexText = '';
+                    if (Math.abs(cVal.imag) < 0.001) {
+                        complexText = `${cVal.real.toFixed(isCompact ? 2 : 3)}`;
+                    } else {
+                        const sign = cVal.imag >= 0 ? '+' : '-';
+                        complexText = `${cVal.real.toFixed(isCompact ? 2 : 3)}${sign}${Math.abs(cVal.imag).toFixed(isCompact ? 2 : 3)}i`;
+                    }
+
+                    const cellSize = isCompact ? '60px' : '100px';
+                    const fontSizeVal = isCompact ? '0.7rem' : '0.75rem';
+                    const fontSizeComplex = isCompact ? '0.55rem' : '0.65rem';
+
+                    const cellHtml = `
+                        <div class="matrix-cell" style="width:${cellSize}; height:${cellSize}; background: ${cellBg}; border-color: ${cellBorder};" title="Row ${i}, Col ${j}\nMagnitude: ${mag.toFixed(4)}">
+                            <span class="matrix-cell-val" style="font-size: ${fontSizeVal}">${mag.toFixed(isCompact ? 2 : 3)}</span>
+                            <span class="matrix-cell-complex" style="font-size: ${fontSizeComplex}; margin-top: 2px;">${complexText}</span>
+                        </div>
+                    `;
+                    grid.insertAdjacentHTML('beforeend', cellHtml);
+                }
+            }
+        }
+
+        // Initialize 3D Bloch Sphere for Single View
+        function initThreeJS() {
+            const container = document.getElementById('bloch-canvas-container');
+            if (isThreeInitialized) return;
+            
+            container.innerHTML = '';
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(width, height);
+            container.appendChild(renderer.domElement);
+
+            const ambient = new THREE.AmbientLight(0xffffff, 0.35);
+            scene.add(ambient);
+            const dirLight = new THREE.DirectionalLight(0x66fcf1, 0.85);
+            dirLight.position.set(4, 5, 3);
+            scene.add(dirLight);
+
+            const sphereGeom = new THREE.SphereGeometry(1, 30, 30);
+            const sphereMat = new THREE.MeshPhongMaterial({
+                color: 0x1f2833,
+                transparent: true,
+                opacity: 0.15,
+                side: THREE.DoubleSide
+            });
+            sphere = new THREE.Mesh(sphereGeom, sphereMat);
+            scene.add(sphere);
+
+            const wireframe = new THREE.WireframeGeometry(sphereGeom);
+            wireframeLine = new THREE.LineSegments(wireframe, new THREE.LineBasicMaterial({ color: 0x66fcf1, opacity: 0.12 }));
+            scene.add(wireframeLine);
+
+            const equatorGeom = new THREE.BufferGeometry();
+            const points = [];
+            for (let i = 0; i <= 64; i++) {
+                const theta = (i / 64) * Math.PI * 2;
+                points.push(new THREE.Vector3(Math.cos(theta), 0, Math.sin(theta)));
+            }
+            equatorGeom.setFromPoints(points);
+            const equator = new THREE.Line(equatorGeom, new THREE.LineBasicMaterial({ color: 0x858688, opacity: 0.3 }));
+            scene.add(equator);
+
+            axesHelper = new THREE.AxesHelper(1.3);
+            scene.add(axesHelper);
+
+            const pointGeom = new THREE.SphereGeometry(0.04, 16, 16);
+            const pointMat = new THREE.MeshPhongMaterial({ color: 0xc5a1ff, emissive: 0xc5a1ff, emissiveIntensity: 0.3 });
+            pointMarker = new THREE.Mesh(pointGeom, pointMat);
+            scene.add(pointMarker);
+
+            const lineGeom = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(0, 0, 0)
+            ]);
+            lineMarker = new THREE.Line(lineGeom, new THREE.LineBasicMaterial({ color: 0xc5a1ff, linewidth: 2 }));
+            scene.add(lineMarker);
+
+            camera.position.set(2.4, 1.8, 2.4);
+            camera.lookAt(0, 0, 0);
+
+            let angle = 0;
+            function animate() {
+                animationFrameId = requestAnimationFrame(animate);
+                angle += 0.005;
+                camera.position.x = 2.4 * Math.cos(angle);
+                camera.position.z = 2.4 * Math.sin(angle);
+                camera.lookAt(0, 0, 0);
+                renderer.render(scene, camera);
+            }
+            
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            animate();
+            isThreeInitialized = true;
+        }
+
+        function updateBlochVector(x, y, z) {
+            if (!isThreeInitialized) return;
+            pointMarker.position.set(x, z, -y);
+            const points = [
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(x, z, -y)
+            ];
+            lineMarker.geometry.setFromPoints(points);
+        }
+
+        // Compare Bloch rendering functions
+        function initCompareThree1(bloch) {
+            const container = document.getElementById('comp-run1-bloch');
+            container.innerHTML = '';
+            if (animFrameId1) cancelAnimationFrame(animFrameId1);
+            isThree1Initialized = false;
+
+            if (!bloch) {
+                container.innerHTML = '<div style="color: var(--text-muted); display:flex; align-items:center; justify-content:center; height:100%; font-size:0.8rem;">Multi-qubit state</div>';
+                return;
+            }
+
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            scene1 = new THREE.Scene();
+            camera1 = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
+            renderer1 = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer1.setSize(width, height);
+            container.appendChild(renderer1.domElement);
+
+            const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+            scene1.add(ambient);
+            const dirLight = new THREE.DirectionalLight(0x66fcf1, 0.8);
+            dirLight.position.set(4, 5, 3);
+            scene1.add(dirLight);
+
+            const sphereGeom = new THREE.SphereGeometry(1, 24, 24);
+            const sphereMat = new THREE.MeshPhongMaterial({ color: 0x1f2833, transparent: true, opacity: 0.15 });
+            scene1.add(new THREE.Mesh(sphereGeom, sphereMat));
+            scene1.add(new THREE.LineSegments(new THREE.WireframeGeometry(sphereGeom), new THREE.LineBasicMaterial({ color: 0x66fcf1, opacity: 0.1 })));
+            
+            const axes = new THREE.AxesHelper(1.2);
+            scene1.add(axes);
+
+            const pointGeom = new THREE.SphereGeometry(0.045, 12, 12);
+            pointMarker1 = new THREE.Mesh(pointGeom, new THREE.MeshPhongMaterial({ color: 0xc5a1ff }));
+            pointMarker1.position.set(bloch.x, bloch.z, -bloch.y);
+            scene1.add(pointMarker1);
+
+            const lineGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(bloch.x, bloch.z, -bloch.y)]);
+            lineMarker1 = new THREE.Line(lineGeom, new THREE.LineBasicMaterial({ color: 0xc5a1ff, linewidth: 2 }));
+            scene1.add(lineMarker1);
+
+            camera1.position.set(2.4, 1.8, 2.4);
+            camera1.lookAt(0,0,0);
+
+            let angle = 0;
+            function animate() {
+                animFrameId1 = requestAnimationFrame(animate);
+                angle += 0.004;
+                camera1.position.x = 2.4 * Math.cos(angle);
+                camera1.position.z = 2.4 * Math.sin(angle);
+                camera1.lookAt(0,0,0);
+                renderer1.render(scene1, camera1);
+            }
+            animate();
+            isThree1Initialized = true;
+        }
+
+        function initCompareThree2(bloch) {
+            const container = document.getElementById('comp-run2-bloch');
+            container.innerHTML = '';
+            if (animFrameId2) cancelAnimationFrame(animFrameId2);
+            isThree2Initialized = false;
+
+            if (!bloch) {
+                container.innerHTML = '<div style="color: var(--text-muted); display:flex; align-items:center; justify-content:center; height:100%; font-size:0.8rem;">Multi-qubit state</div>';
+                return;
+            }
+
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            scene2 = new THREE.Scene();
+            camera2 = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
+            renderer2 = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer2.setSize(width, height);
+            container.appendChild(renderer2.domElement);
+
+            const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+            scene2.add(ambient);
+            const dirLight = new THREE.DirectionalLight(0x66fcf1, 0.8);
+            dirLight.position.set(4, 5, 3);
+            scene2.add(dirLight);
+
+            const sphereGeom = new THREE.SphereGeometry(1, 24, 24);
+            const sphereMat = new THREE.MeshPhongMaterial({ color: 0x1f2833, transparent: true, opacity: 0.15 });
+            scene2.add(new THREE.Mesh(sphereGeom, sphereMat));
+            scene2.add(new THREE.LineSegments(new THREE.WireframeGeometry(sphereGeom), new THREE.LineBasicMaterial({ color: 0x66fcf1, opacity: 0.1 })));
+            
+            const axes = new THREE.AxesHelper(1.2);
+            scene2.add(axes);
+
+            const pointGeom = new THREE.SphereGeometry(0.045, 12, 12);
+            pointMarker2 = new THREE.Mesh(pointGeom, new THREE.MeshPhongMaterial({ color: 0xc5a1ff }));
+            pointMarker2.position.set(bloch.x, bloch.z, -bloch.y);
+            scene2.add(pointMarker2);
+
+            const lineGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(bloch.x, bloch.z, -bloch.y)]);
+            lineMarker2 = new THREE.Line(lineGeom, new THREE.LineBasicMaterial({ color: 0xc5a1ff, linewidth: 2 }));
+            scene2.add(lineMarker2);
+
+            camera2.position.set(2.4, 1.8, 2.4);
+            camera2.lookAt(0,0,0);
+
+            let angle = 0;
+            function animate() {
+                animFrameId2 = requestAnimationFrame(animate);
+                angle += 0.004;
+                camera2.position.x = 2.4 * Math.cos(angle);
+                camera2.position.z = 2.4 * Math.sin(angle);
+                camera2.lookAt(0,0,0);
+                renderer2.render(scene2, camera2);
+            }
+            animate();
+            isThree2Initialized = true;
+        }
+
+        function cleanThreeCompare() {
+            if (animFrameId1) { cancelAnimationFrame(animFrameId1); animFrameId1 = null; }
+            if (animFrameId2) { cancelAnimationFrame(animFrameId2); animFrameId2 = null; }
+            isThree1Initialized = false;
+            isThree2Initialized = false;
+        }
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            if (isThreeInitialized) {
+                const container = document.getElementById('bloch-canvas-container');
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            }
+            if (isThree1Initialized) {
+                const container = document.getElementById('comp-run1-bloch');
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                camera1.aspect = width / height;
+                camera1.updateProjectionMatrix();
+                renderer1.setSize(width, height);
+            }
+            if (isThree2Initialized) {
+                const container = document.getElementById('comp-run2-bloch');
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                camera2.aspect = width / height;
+                camera2.updateProjectionMatrix();
+                renderer2.setSize(width, height);
+            }
+        });
+    </script>
+</body>
+</html>

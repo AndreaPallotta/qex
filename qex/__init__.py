@@ -4,11 +4,12 @@ qex: A lightweight experiment-runner and lab notebook for quantum computing.
 Built on top of Cirq, focused on experiments, runs, reproducibility, and visualization.
 """
 
-__version__ = "0.1.2"
+__version__ = "1.0.0"
 __all__ = [
     "Experiment",
     "Backend",
     "CirqBackend",
+    "NoisyCirqBackend",
     "Runner",
     "ResultStore",
     "RunRecord",
@@ -29,6 +30,9 @@ def __getattr__(name: str):
     elif name == "CirqBackend":
         from qex.backend import CirqBackend
         return CirqBackend
+    elif name == "NoisyCirqBackend":
+        from qex.backend import NoisyCirqBackend
+        return NoisyCirqBackend
     elif name == "Runner":
         from qex.runner import Runner
         return Runner

@@ -7,7 +7,6 @@ from pathlib import Path
 import json
 import sqlite3
 import numpy as np
-import uuid
 
 
 class RunRecord:
@@ -73,7 +72,7 @@ class RunRecord:
         if self._base_dir is None:
             raise ValueError("Base directory not set. Use ResultStore.get_run() to load records.")
         full_path = self._base_dir / self.density_matrix_path
-        return np.load(full_path)
+        return np.load(full_path)  # type: ignore[no-any-return]
 
 
 class ResultStore:
@@ -94,6 +93,7 @@ class ResultStore:
         """
         self.db_path = Path(db_path).resolve()
         self.base_dir = self.db_path.parent
+        self.base_dir.mkdir(parents=True, exist_ok=True)
         self.conn = sqlite3.connect(str(self.db_path))
         self.conn.row_factory = sqlite3.Row
         self._initialize_schema()
@@ -156,6 +156,31 @@ class ResultStore:
         Args:
             record: The RunRecord to save.
         """
+        self._ensure_directories()
+        
+        # Copy density matrix and artifacts to the store's directories if they were saved elsewhere
+        src_base = record._base_dir or Path.cwd()
+        if src_base.resolve() != self.base_dir.resolve():
+            import shutil
+            
+            # Copy density matrix
+            src_rho = src_base / record.density_matrix_path
+            dst_rho = self.base_dir / record.density_matrix_path
+            if src_rho.exists() and src_rho.resolve() != dst_rho.resolve():
+                dst_rho.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src_rho, dst_rho)
+                
+            # Copy artifacts
+            for art_name, art_path in record.artifacts.items():
+                src_art = src_base / art_path
+                dst_art = self.base_dir / art_path
+                if src_art.exists() and src_art.resolve() != dst_art.resolve():
+                    dst_art.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src_art, dst_art)
+            
+            # Update the record's base dir to the store's base dir
+            record.set_base_dir(self.base_dir)
+
         cursor = self.conn.cursor()
         
         # Save run metadata
@@ -242,7 +267,7 @@ class ResultStore:
         cursor = self.conn.cursor()
         
         query = "SELECT run_id FROM runs"
-        params = []
+        params: List[Any] = []
         if experiment_name:
             query += " WHERE experiment_name = ?"
             params.append(experiment_name)
