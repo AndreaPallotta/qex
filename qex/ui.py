@@ -77,7 +77,31 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
             self.api_run_experiment()
             return
 
+        # Route: API - Run VQE
+        if parsed_path == "/api/vqe/run":
+            self.api_run_vqe()
+            return
+
+        # Route: API - Clear all runs
+        if parsed_path == "/api/runs/clear":
+            self.api_clear_runs()
+            return
+
         # Fallback 404
+        self.send_response(404)
+        self.end_headers()
+        self.wfile.write(b"Not Found")
+
+    def do_DELETE(self) -> None:
+        """Handle DELETE requests for deleting single runs."""
+        parsed_path = self.path.split("?")[0]
+        if parsed_path.startswith("/api/runs/"):
+            parts = parsed_path.split("/")
+            if len(parts) >= 4:
+                run_id = parts[3]
+                self.api_delete_run(run_id)
+                return
+
         self.send_response(404)
         self.end_headers()
         self.wfile.write(b"Not Found")
@@ -103,6 +127,7 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
         try:
             store = ResultStore(_db_path)
             runs = store.list_runs()
+            runs = sorted(runs, key=lambda x: x.timestamp, reverse=True)
             store.close()
         except Exception as e:
             self.send_json_error(f"Database error: {str(e)}", 500)
@@ -122,6 +147,29 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
             })
 
         self.send_json(result)
+
+    def api_delete_run(self, run_id: str) -> None:
+        """Delete a single run from database."""
+        try:
+            store = ResultStore(_db_path)
+            deleted = store.delete_run(run_id)
+            store.close()
+            if deleted:
+                self.send_json({"success": True, "message": f"Run {run_id} deleted"})
+            else:
+                self.send_json_error(f"Run {run_id} not found", 404)
+        except Exception as e:
+            self.send_json_error(f"Database error: {str(e)}", 500)
+
+    def api_clear_runs(self) -> None:
+        """Clear all runs from database."""
+        try:
+            store = ResultStore(_db_path)
+            store.clear_all_runs()
+            store.close()
+            self.send_json({"success": True, "message": "All runs cleared"})
+        except Exception as e:
+            self.send_json_error(f"Database error: {str(e)}", 500)
 
     def api_get_density_matrix(self, run_id: str) -> None:
         """Get the density matrix values and Bloch sphere coords for a run."""
@@ -154,30 +202,33 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
                 })
             matrix_list.append(row_list)
 
-        # Compute Bloch coordinates if applicable (1-qubit or qubit 0 reduced state)
         bloch_data = None
+        bloch_per_qubit = []
         purity = 1.0
         entropy = 0.0
         try:
             from qex.bloch import state_purity, state_entropy
             purity = state_purity(rho)
             entropy = state_entropy(rho)
-            
-            if rho.shape == (2, 2):
-                x, y, z = density_matrix_to_bloch(rho)
-                bloch_data = {"x": x, "y": y, "z": z}
-            elif rho.shape == (4, 4):
-                # 2-qubit system: compute reduced density matrix of qubit 0
-                rho_red = reduced_density_matrix(rho, 0)
-                x, y, z = density_matrix_to_bloch(rho_red)
-                bloch_data = {"x": x, "y": y, "z": z}
+            num_qubits = int(np.round(np.log2(rho.shape[0])))
+
+            for q_idx in range(num_qubits):
+                if num_qubits == 1:
+                    rho_q = rho
+                else:
+                    rho_q = reduced_density_matrix(rho, q_idx)
+                bx, by, bz = density_matrix_to_bloch(rho_q)
+                bloch_per_qubit.append({"qubit": q_idx, "x": bx, "y": by, "z": bz})
+
+            if len(bloch_per_qubit) > 0:
+                bloch_data = bloch_per_qubit[0]
         except Exception:
-            # Non-critical: ignore if Bloch coords calculations fail (e.g. 3+ qubits)
             pass
 
         self.send_json({
             "matrix": matrix_list,
             "bloch": bloch_data,
+            "bloch_per_qubit": bloch_per_qubit,
             "purity": purity,
             "entropy": entropy
         })
@@ -218,6 +269,70 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
                 self.send_json_error("Bell/GHZ state experiment requires at least 2 qubits", 400)
                 return
             exp = bell_state_experiment()
+        elif exp_name == "quantum_teleportation":
+            from qex.demos import quantum_teleportation_experiment
+            num_qubits = max(3, num_qubits)
+            config = {"qubits": [cirq.GridQubit(0, i) for i in range(num_qubits)]}
+            exp = quantum_teleportation_experiment()
+        elif exp_name == "ghz_state":
+            from qex.demos import ghz_state_experiment
+            exp = ghz_state_experiment()
+        elif exp_name == "qft_3qubit":
+            from qex.demos import qft_experiment
+            num_qubits = max(3, num_qubits)
+            config = {"qubits": [cirq.GridQubit(0, i) for i in range(num_qubits)]}
+            exp = qft_experiment()
+        elif exp_name == "grover_search":
+            from qex.demos import grover_experiment
+            num_qubits = 3
+            config = {"qubits": [cirq.GridQubit(0, i) for i in range(3)]}
+            exp = grover_experiment()
+        elif exp_name == "vqe_h2":
+            self.api_run_vqe()
+            return
+        elif exp_name == "qaoa_maxcut":
+            from qex.ml import has_ml
+            if not has_ml():
+                self.send_json_error("qex[ml] extension is required for QAOA", 400)
+                return
+            from qex.ml.qaoa import QAOA
+            qaoa_solver = QAOA(num_qubits=4, p=2)
+            results = qaoa_solver.solve_maxcut(epochs=20)
+
+            store = ResultStore(_db_path)
+            import time, uuid
+            run_id = str(uuid.uuid4())
+            state_vec = np.array(results["state_vector"], dtype=np.complex128)
+            density_mat = np.outer(state_vec, np.conj(state_vec))
+
+            rel_matrix_path = f"density_matrices/{run_id}.npy"
+            abs_matrix_path = store.base_dir / rel_matrix_path
+            abs_matrix_path.parent.mkdir(parents=True, exist_ok=True)
+            np.save(abs_matrix_path, density_mat)
+
+            from qex.store import RunRecord
+            record = RunRecord(
+                run_id=run_id,
+                experiment_name="qaoa_maxcut",
+                params={"qubits": 4, "p": 2, "max_cut_expectation": results["max_cut_expectation"]},
+                backend_name="qex.ml.qaoa",
+                timestamp=time.time(),
+                density_matrix_path=rel_matrix_path,
+                artifacts={},
+                metadata={"loss_history": results["loss_history"]},
+            )
+            store.save_run(record)
+            store.close()
+
+            self.send_json({
+                "success": True,
+                "record": {
+                    "run_id": record.run_id,
+                    "experiment_name": record.experiment_name,
+                    "timestamp": record.timestamp
+                }
+            })
+            return
         else:
             self.send_json_error(f"Unknown experiment: {exp_name}", 400)
             return
@@ -247,6 +362,53 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
                 "timestamp": record.timestamp
             }
         })
+
+    def api_run_vqe(self) -> None:
+        """Execute VQE optimization run and store in database."""
+        from qex.ml import has_ml
+        if not has_ml():
+            self.send_json_error("qex[ml] extension is missing. Install with: pip install qex[ml]", 400)
+            return
+
+        try:
+            from qex.ml.vqe import VQE
+            vqe_solver = VQE(num_qubits=2, layers=2)
+            results = vqe_solver.solve_h2(epochs=30, lr=0.05)
+
+            store = ResultStore(_db_path)
+            import time, uuid
+            run_id = str(uuid.uuid4())
+            state_vec = np.array(results["state_vector"], dtype=np.complex128)
+            density_mat = np.outer(state_vec, np.conj(state_vec))
+
+            rel_matrix_path = f"density_matrices/{run_id}.npy"
+            abs_matrix_path = store.base_dir / rel_matrix_path
+            abs_matrix_path.parent.mkdir(parents=True, exist_ok=True)
+            np.save(abs_matrix_path, density_mat)
+
+            from qex.store import RunRecord
+            record = RunRecord(
+                run_id=run_id,
+                experiment_name="vqe_h2_ground_state",
+                params={"qubits": 2, "epochs": 30, "lr": 0.05, "final_energy": results["final_energy"]},
+                backend_name="qex.ml.vqe",
+                timestamp=time.time(),
+                density_matrix_path=rel_matrix_path,
+                artifacts={},
+                metadata={"energy_history": results["energy_history"]},
+            )
+            store.save_run(record)
+            store.close()
+
+            self.send_json({
+                "success": True,
+                "run_id": run_id,
+                "final_energy": results["final_energy"],
+                "exact_h2_energy": results["exact_h2_energy"],
+                "energy_history": results["energy_history"],
+            })
+        except Exception as e:
+            self.send_json_error(f"VQE execution error: {str(e)}", 500)
 
     def send_json(self, data: Any, status: int = 200) -> None:
         """Helper to send JSON response."""

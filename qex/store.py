@@ -286,6 +286,39 @@ class ResultStore:
                 records.append(record)
         
         return records
+
+    def delete_run(self, run_id: str) -> bool:
+        """Delete a single run record and its artifacts from SQLite database."""
+        record = self.get_run(run_id)
+        if record and record.density_matrix_path:
+            abs_path = self.base_dir / record.density_matrix_path
+            if abs_path.exists():
+                try:
+                    abs_path.unlink()
+                except Exception:
+                    pass
+        cursor = self.conn.cursor()
+        cursor.execute("DELETE FROM artifacts WHERE run_id = ?", (run_id,))
+        cursor.execute("DELETE FROM runs WHERE run_id = ?", (run_id,))
+        self.conn.commit()
+        return cursor.rowcount > 0
+
+    def clear_all_runs(self) -> None:
+        """Clear all run records and files from SQLite database."""
+        cursor = self.conn.cursor()
+        cursor.execute("DELETE FROM artifacts")
+        cursor.execute("DELETE FROM runs")
+        self.conn.commit()
+        # Clean up files on disk
+        import shutil
+        for folder_name in ["density_matrices", "results"]:
+            folder = self.base_dir / folder_name
+            if folder.exists():
+                try:
+                    shutil.rmtree(folder)
+                    folder.mkdir(parents=True, exist_ok=True)
+                except Exception:
+                    pass
     
     def close(self) -> None:
         """

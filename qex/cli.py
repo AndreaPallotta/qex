@@ -187,6 +187,64 @@ def view_run(ctx: click.Context, run_id: str) -> None:
     webbrowser.open(f"file:///{html_path.resolve().as_posix()}")
 
 
+@main.command(name="ml-status")
+def ml_status() -> None:
+    """Check status of optional Quantum ML (qex[ml]) dependencies."""
+    from qex.ml import has_ml
+    if has_ml():
+        import torch
+        click.echo(f"qex[ml] Status: Installed (PyTorch v{torch.__version__})")
+    else:
+        click.echo("qex[ml] Status: Not Installed")
+        click.echo("To install optional Quantum ML features: pip install qex[ml]")
+
+
+@main.command(name="run-vqe")
+@click.option("--epochs", default=30, help="Optimization epoch count.")
+@click.option("--lr", default=0.05, help="Learning rate.")
+@click.pass_context
+def run_vqe(ctx: click.Context, epochs: int, lr: float) -> None:
+    """Run Variational Quantum Eigensolver (VQE) for H2 ground state energy."""
+    from qex.ml import has_ml, VQE
+    if not has_ml():
+        click.echo("Error: qex[ml] extension is missing. Install with: pip install qex[ml]", err=True)
+        sys.exit(1)
+
+    db_path = ctx.obj["db_path"]
+    click.echo(f"Running VQE H2 ground state optimization ({epochs} epochs, lr={lr})...")
+    vqe_solver = VQE(num_qubits=2, layers=2)
+    results = vqe_solver.solve_h2(epochs=epochs, lr=lr)
+
+    click.echo(f"Final Energy: {results['final_energy']:.4f} Ha (Exact H2: {results['exact_h2_energy']:.4f} Ha)")
+
+    # Save VQE run record to SQLite database.
+    store = get_default_store(db_path)
+    import time, uuid
+    run_id = str(uuid.uuid4())
+    state_vec = np.array(results["state_vector"], dtype=np.complex128)
+    density_mat = np.outer(state_vec, np.conj(state_vec))
+
+    rel_matrix_path = f"density_matrices/{run_id}.npy"
+    abs_matrix_path = store.base_dir / rel_matrix_path
+    abs_matrix_path.parent.mkdir(parents=True, exist_ok=True)
+    np.save(abs_matrix_path, density_mat)
+
+    from qex.store import RunRecord
+    record = RunRecord(
+        run_id=run_id,
+        experiment_name="vqe_h2_ground_state",
+        params={"epochs": epochs, "lr": lr, "final_energy": results["final_energy"]},
+        backend_name="qex.ml.vqe",
+        timestamp=time.time(),
+        density_matrix_path=rel_matrix_path,
+        artifacts={},
+        metadata={"energy_history": results["energy_history"]},
+    )
+    store.save_run(record)
+    store.close()
+    click.echo(f"Saved VQE run to lab notebook: {run_id[:8]}")
+
+
 @main.command(name="ui")
 @click.option("--port", default=8000, help="Port to run the UI server on.")
 @click.pass_context
@@ -195,8 +253,7 @@ def run_ui(ctx: click.Context, port: int) -> None:
     db_path = ctx.obj["db_path"]
     click.echo(f"Starting qex Web Dashboard on port {port}...")
     click.echo(f"Connecting to database: {db_path}")
-    
-    # Import and start ui server (implemented in Phase 3)
+
     from qex.ui import start_server
     start_server(db_path=db_path, port=port)
 

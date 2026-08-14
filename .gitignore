@@ -11,8 +11,15 @@ wheels/
 
 # qex data directory (test results)
 qex_data/
-
 results/
 
-# GitHub Actions artifacts (if any)
+# Pytest / Coverage / Temp
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+temp_test.js
+*.log
+
+# GitHub Actions artifacts
 .github/workflows/*.log

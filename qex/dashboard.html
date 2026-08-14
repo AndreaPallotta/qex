@@ -12,20 +12,20 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
-            --bg-dark: #0b0c10;
-            --bg-card: rgba(31, 40, 51, 0.45);
-            --bg-card-hover: rgba(31, 40, 51, 0.65);
-            --border-glow: rgba(102, 252, 241, 0.15);
-            --border-glow-active: rgba(102, 252, 241, 0.4);
-            --primary: #66fcf1;
-            --primary-dark: #45f3e5;
-            --secondary: #c5a1ff;
-            --text-main: #c5c6c7;
-            --text-bright: #ffffff;
-            --text-muted: #858688;
-            --gradient-accent: linear-gradient(135deg, #66fcf1 0%, #4b0082 100%);
-            --gradient-card: linear-gradient(135deg, rgba(31, 40, 51, 0.6) 0%, rgba(20, 24, 33, 0.6) 100%);
-            --gradient-compare: linear-gradient(135deg, #c5a1ff 0%, #4b0082 100%);
+            --bg-dark: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --bg-card-hover: rgba(30, 41, 59, 0.9);
+            --border-glow: rgba(56, 189, 248, 0.2);
+            --border-glow-active: rgba(56, 189, 248, 0.5);
+            --primary: #38bdf8;
+            --primary-dark: #0284c7;
+            --secondary: #818cf8;
+            --text-main: #94a3b8;
+            --text-bright: #f8fafc;
+            --text-muted: #64748b;
+            --gradient-accent: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+            --gradient-card: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.8) 100%);
+            --gradient-compare: linear-gradient(135deg, #818cf8 0%, #4f46e5 100%);
         }
 
         * {
@@ -383,9 +383,14 @@
         }
 
         .launcher-card.selected {
-            border-color: var(--primary);
-            background: rgba(102, 252, 241, 0.06);
-            box-shadow: 0 0 15px rgba(102, 252, 241, 0.1);
+            border-color: #38bdf8;
+            background: rgba(56, 189, 248, 0.12);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+            transform: scale(1.02);
+        }
+
+        .launcher-card.selected .launcher-name {
+            color: #38bdf8;
         }
 
         .launcher-name {
@@ -520,6 +525,31 @@
 
         .btn-run:active {
             transform: translateY(0);
+        }
+
+        .workbench-tab {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .workbench-tab:hover {
+            color: var(--text-bright);
+            border-color: var(--border-glow);
+            background: rgba(30, 41, 59, 0.8);
+        }
+
+        .workbench-tab.active {
+            color: var(--primary);
+            background: rgba(56, 189, 248, 0.12);
+            border-color: var(--primary);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
         }
 
         /* Results Display Section */
@@ -814,7 +844,10 @@
                     <h2 class="sidebar-title">Experiment Runs</h2>
                     <p class="sidebar-subtitle">Lab Notebook & Persistence</p>
                 </div>
-                <button class="btn-toggle-compare" id="toggle-compare-btn" onclick="toggleCompareMode()">Compare</button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-toggle-compare" id="toggle-compare-btn" onclick="toggleCompareMode()">Compare</button>
+                    <button class="btn-toggle-compare" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: #f87171;" onclick="clearAllRuns()">Clear All</button>
+                </div>
             </div>
             <div class="run-list" id="runs-container">
                 <!-- Loaded dynamically -->
@@ -855,6 +888,41 @@
                             <div class="launcher-desc">Create entangled state (|00...0⟩ + |11...1⟩)/√2</div>
                         </div>
                         <span class="launcher-qubits">2-10 Qubits</span>
+                    </div>
+                    <div class="launcher-card" data-experiment="quantum_teleportation" onclick="selectExperiment('quantum_teleportation')">
+                        <div>
+                            <div class="launcher-name">Quantum Teleportation</div>
+                            <div class="launcher-desc">Teleport state |ψ⟩ with Bell pair and classical correction</div>
+                        </div>
+                        <span class="launcher-qubits">3 Qubits</span>
+                    </div>
+                    <div class="launcher-card" data-experiment="qft_3qubit" onclick="selectExperiment('qft_3qubit')">
+                        <div>
+                            <div class="launcher-name">Quantum Fourier Transform</div>
+                            <div class="launcher-desc">n-qubit QFT phase rotation transformation</div>
+                        </div>
+                        <span class="launcher-qubits">3 Qubits</span>
+                    </div>
+                    <div class="launcher-card" data-experiment="grover_search" onclick="selectExperiment('grover_search')">
+                        <div>
+                            <div class="launcher-name">Grover Search</div>
+                            <div class="launcher-desc">Quantum database search with oracle amplification</div>
+                        </div>
+                        <span class="launcher-qubits">3 Qubits</span>
+                    </div>
+                    <div class="launcher-card" data-experiment="vqe_h2" onclick="selectExperiment('vqe_h2')">
+                        <div>
+                            <div class="launcher-name">VQE H₂ Ground State</div>
+                            <div class="launcher-desc">Variational Quantum Eigensolver for molecular energy</div>
+                        </div>
+                        <span class="launcher-qubits">2 Qubits (qex[ml])</span>
+                    </div>
+                    <div class="launcher-card" data-experiment="qaoa_maxcut" onclick="selectExperiment('qaoa_maxcut')">
+                        <div>
+                            <div class="launcher-name">QAOA Max-Cut</div>
+                            <div class="launcher-desc">Quantum Approximate Optimization Algorithm for graph cut</div>
+                        </div>
+                        <span class="launcher-qubits">4 Qubits (qex[ml])</span>
                     </div>
                 </div>
 
@@ -927,28 +995,64 @@
                         </div>
                     </div>
 
+                    <!-- Tabbed Workbench Toolbar -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 12px; flex-wrap: wrap;">
+                        <button class="workbench-tab active" id="tab-btn-matrix" onclick="switchWorkbenchTab('matrix')">🔬 Density Matrix (ρ)</button>
+                        <button class="workbench-tab" id="tab-btn-bloch" onclick="switchWorkbenchTab('bloch')">🌐 3D Bloch Field</button>
+                        <button class="workbench-tab" id="tab-btn-waves" onclick="switchWorkbenchTab('waves')">🌊 Wave Amplitudes</button>
+                        <button class="workbench-tab" id="tab-btn-probs" onclick="switchWorkbenchTab('probs')">📊 State Probabilities</button>
+                        <button class="workbench-tab" id="tab-btn-code" onclick="switchWorkbenchTab('code')">⚡ Circuit & Python Code</button>
+                    </div>
+
                     <div class="results-section">
-                        <!-- Density Matrix Grid -->
-                        <div>
-                            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text-bright); margin-bottom: 16px;">Density Matrix (ρ)</h3>
-                            <div class="matrix-container">
+                        <!-- Density Matrix Grid Panel -->
+                        <div id="panel-tab-matrix">
+                            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text-bright); margin-bottom: 16px;">Density Matrix (ρ) Heatmap</h3>
+                            <div class="matrix-container" style="max-height: 360px; overflow: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; background: rgba(15,23,42,0.5);">
                                 <div class="matrix-grid" id="matrix-grid-element">
                                     <!-- Rendered dynamically -->
                                 </div>
                             </div>
                         </div>
 
-                        <!-- 3D Bloch Sphere Visualizer -->
-                        <div>
-                            <h3 id="bloch-panel-title" style="font-size: 1rem; font-weight: 600; color: var(--text-bright); margin-bottom: 16px;">Bloch Sphere Representation</h3>
+                        <!-- 3D Bloch Sphere Visualizer Panel -->
+                        <div id="panel-tab-bloch">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <h3 id="bloch-panel-title" style="font-size: 1rem; font-weight: 600; color: var(--text-bright);">3D Bloch Vector Field</h3>
+                                <select id="qubit-selector" onchange="onQubitSelectorChange(this.value)" style="display: none; background: rgba(30, 41, 59, 0.9); color: var(--primary); border: 1px solid var(--border-glow); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; outline: none; cursor: pointer;"></select>
+                            </div>
                             <div class="bloch-container">
                                 <div id="bloch-canvas-container" class="bloch-canvas-box"></div>
-                                <div class="bloch-coords-overlay" id="bloch-coords-element" style="display: none;">
-                                    <div><span class="coord-label">x:</span> <span class="coord-val" id="coord-x">0.0000</span></div>
-                                    <div><span class="coord-label">y:</span> <span class="coord-val" id="coord-y">0.0000</span></div>
-                                    <div><span class="coord-label">z:</span> <span class="coord-val" id="coord-z">0.0000</span></div>
+                                <div class="bloch-coords-overlay" id="bloch-coords-element" style="display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto;">
+                                    <div id="multi-bloch-coords-list"></div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- State Probability Histogram Panel -->
+                    <div id="panel-tab-probs" style="margin-top: 24px; background: rgba(15, 23, 42, 0.6); padding: 20px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                        <h3 style="font-size: 1rem; font-weight: 600; color: var(--text-bright); margin-bottom: 16px;">State Basis Probabilities |⟨x|Ψ⟩|²</h3>
+                        <div id="state-probs-histogram" style="display: flex; align-items: flex-end; gap: 12px; height: 160px; padding: 12px; background: #090d16; border-radius: 8px; border: 1px solid var(--border-glow); overflow-x: auto;"></div>
+                    </div>
+
+                    <!-- Circuit & Python Code Panel -->
+                    <div id="panel-tab-code" style="margin-top: 24px; background: rgba(15, 23, 42, 0.6); padding: 20px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                        <h3 style="font-size: 1rem; font-weight: 600; color: var(--text-bright); margin-bottom: 12px;">Executable Cirq Code & Circuit Specification</h3>
+                        <pre id="circuit-code-block" style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #38bdf8; background: #090d16; padding: 16px; border-radius: 8px; overflow-x: auto; border: 1px solid var(--border-glow);"></pre>
+                    </div>
+
+                    <!-- Continuous Wavefunction Amplitude & Density Graph Panel -->
+                    <div style="margin-top: 32px; background: rgba(15, 23, 42, 0.6); padding: 20px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text-bright);">Quantum State Amplitude & Density Waves</h3>
+                            <span style="font-size: 0.75rem; color: var(--primary); background: rgba(56, 189, 248, 0.1); padding: 2px 8px; border-radius: 4px;">State Amplitude Field |Ψ|²</span>
+                        </div>
+                        <canvas id="wavefunction-canvas" width="800" height="180" style="width: 100%; height: 180px; display: block; background: #090d16; border-radius: 8px; border: 1px solid var(--border-glow);"></canvas>
+                        <div style="display: flex; gap: 16px; margin-top: 8px; font-size: 0.75rem; color: var(--text-muted);">
+                            <span><strong style="color: #38bdf8;">—</strong> Probability Density |Ψ|²</span>
+                            <span><strong style="color: #818cf8;">—</strong> Re(Ψ) Real Amplitude</span>
+                            <span><strong style="color: #c084fc;">—</strong> Im(Ψ) Imaginary Amplitude</span>
                         </div>
                     </div>
                 </div>
@@ -1079,9 +1183,19 @@
                 paramsSection.style.display = 'none';
             }
 
-            // Adjust Qubits Slider range and defaults
+            // Adjust Qubits Slider range and defaults for each experiment
             const qubitsSlider = document.getElementById('qubits-slider');
-            if (expName === 'bell_state') {
+            if (expName === 'qaoa_maxcut') {
+                qubitsSlider.min = 4;
+                qubitsSlider.value = 4;
+                updateQubitsSliderValue(4);
+            } else if (expName === 'quantum_teleportation' || expName === 'qft_3qubit' || expName === 'grover_search') {
+                qubitsSlider.min = 3;
+                if (parseInt(qubitsSlider.value) < 3) {
+                    qubitsSlider.value = 3;
+                    updateQubitsSliderValue(3);
+                }
+            } else if (expName === 'bell_state' || expName === 'vqe_h2') {
                 qubitsSlider.min = 2;
                 if (parseInt(qubitsSlider.value) < 2) {
                     qubitsSlider.value = 2;
@@ -1228,7 +1342,7 @@
                         <div class="compare-checkbox-container" style="display: ${isCompareMode ? 'flex' : 'none'};">
                             <input type="checkbox" class="compare-checkbox" data-id="${run.run_id}" ${isChecked} onclick="handleCheckboxClick(event, '${run.run_id}')">
                         </div>
-                        <div class="run-card-content">
+                        <div class="run-card-content" style="flex: 1;">
                             <div class="run-card-header">
                                 <span class="run-exp-name">${run.experiment_name.replace('_', ' ').toUpperCase()}</span>
                                 <span class="run-time">${date.toLocaleTimeString()}</span>
@@ -1236,10 +1350,47 @@
                             <div class="run-id-badge">${run.run_id.substring(0, 8)}</div>
                             <div class="run-params-summary">${paramsLabel}</div>
                         </div>
+                        <button onclick="deleteSingleRun(event, '${run.run_id}')" style="background: none; border: none; color: #ef4444; font-weight: bold; cursor: pointer; padding: 4px 8px; opacity: 0.7; font-size: 1rem;" title="Delete Run">✕</button>
                     </div>
                 `;
                 container.insertAdjacentHTML('beforeend', cardHtml);
             });
+        }
+
+        async function deleteSingleRun(event, runId) {
+            event.stopPropagation();
+            try {
+                const res = await fetch(`/api/runs/${runId}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast("Run deleted");
+                    if (activeRunId === runId) activeRunId = null;
+                    await fetchRuns();
+                } else {
+                    showToast("Error deleting run");
+                }
+            } catch (err) {
+                console.error("Error deleting run:", err);
+            }
+        }
+
+        async function clearAllRuns() {
+            if (!confirm("Are you sure you want to clear all experiment runs from the lab notebook?")) return;
+            try {
+                const res = await fetch('/api/runs/clear', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast("All runs cleared");
+                    activeRunId = null;
+                    currentRuns = [];
+                    renderRunsList([]);
+                    document.getElementById('placeholder-pane').style.display = 'flex';
+                    document.getElementById('details-pane').style.display = 'none';
+                    document.getElementById('compare-pane').style.display = 'none';
+                }
+            } catch (err) {
+                console.error("Error clearing runs:", err);
+            }
         }
 
         async function executeCurrentExperiment() {
@@ -1258,7 +1409,7 @@
             try {
                 const btn = document.querySelector('.btn-run');
                 btn.disabled = true;
-                btn.innerHTML = 'Simulating...';
+                btn.innerText = "Running Simulation...";
 
                 const response = await fetch('/api/run', {
                     method: 'POST',
@@ -1276,21 +1427,131 @@
                 `;
 
                 if (result.success) {
-                    showToast(`Simulated ${selectedExp} successfully!`);
+                    showToast(`Executed ${selectedExp.replace('_', ' ')} successfully!`);
                     if (isCompareMode) {
-                        // Exit compare mode to view the new run
                         toggleCompareMode();
                     }
-                    activeRunId = result.record.run_id;
+                    const newRunId = result.run_id || (result.record ? result.record.run_id : null);
+                    activeRunId = newRunId;
                     await fetchRuns();
-                    displayRunDetails(result.record.run_id);
+                    if (newRunId) {
+                        await displayRunDetails(newRunId);
+                    }
                 } else {
-                    showToast(`Error: ${result.error}`);
+                    showToast(`Error: ${result.error || "Simulation failed"}`);
                 }
             } catch (err) {
                 console.error("Error executing experiment:", err);
                 showToast("Connection to local server failed.");
             }
+        }
+
+        let waveAnimId = null;
+
+        function drawWavefunctionGraph(matrix) {
+            if (waveAnimId) {
+                cancelAnimationFrame(waveAnimId);
+                waveAnimId = null;
+            }
+
+            const canvas = document.getElementById('wavefunction-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            const numStates = matrix.length;
+            let time = 0;
+
+            function animateWave() {
+                time += 0.04;
+                ctx.clearRect(0, 0, width, height);
+
+                const baselineY = height * 0.65;
+                const scaleY = height * 0.45;
+
+                // Grid background
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
+                ctx.lineWidth = 1;
+                for (let x = 0; x < width; x += 40) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.stroke();
+                }
+
+                // Compute wave interpolation points across canvas width
+                const points = 200;
+                let densityPoints = [];
+                let realPoints = [];
+                let imagPoints = [];
+
+                for (let pt = 0; pt < points; pt++) {
+                    let normX = pt / (points - 1);
+                    let px = normX * width;
+
+                    let psiReal = 0;
+                    let psiImag = 0;
+
+                    for (let k = 0; k < numStates; k++) {
+                        let mag = Math.sqrt(Math.max(0, matrix[k][k].real));
+                        let spatialPhase = k * normX * Math.PI * 2;
+                        let temporalPhase = time * (1 + k * 0.5);
+                        let phase = spatialPhase - temporalPhase;
+
+                        psiReal += mag * Math.cos(phase);
+                        psiImag += mag * Math.sin(phase);
+                    }
+
+                    let density = (psiReal * psiReal + psiImag * psiImag) / numStates;
+
+                    densityPoints.push({ x: px, y: baselineY - density * scaleY });
+                    realPoints.push({ x: px, y: baselineY - psiReal * (scaleY * 0.4) });
+                    imagPoints.push({ x: px, y: baselineY - psiImag * (scaleY * 0.4) });
+                }
+
+                // 1. Fill Probability Density Field |Ψ(x,t)|²
+                ctx.beginPath();
+                ctx.fillStyle = "rgba(56, 189, 248, 0.18)";
+                ctx.moveTo(0, height);
+                densityPoints.forEach(p => ctx.lineTo(p.x, p.y));
+                ctx.lineTo(width, height);
+                ctx.closePath();
+                ctx.fill();
+
+                // Draw Density Line
+                ctx.beginPath();
+                ctx.strokeStyle = "#38bdf8";
+                ctx.lineWidth = 2.5;
+                densityPoints.forEach((p, idx) => {
+                    if (idx === 0) ctx.moveTo(p.x, p.y);
+                    else ctx.lineTo(p.x, p.y);
+                });
+                ctx.stroke();
+
+                // 2. Draw Re(Ψ) Wave Line
+                ctx.beginPath();
+                ctx.strokeStyle = "#818cf8";
+                ctx.lineWidth = 1.8;
+                realPoints.forEach((p, idx) => {
+                    if (idx === 0) ctx.moveTo(p.x, p.y);
+                    else ctx.lineTo(p.x, p.y);
+                });
+                ctx.stroke();
+
+                // 3. Draw Im(Ψ) Wave Line
+                ctx.beginPath();
+                ctx.strokeStyle = "#c084fc";
+                ctx.lineWidth = 1.8;
+                imagPoints.forEach((p, idx) => {
+                    if (idx === 0) ctx.moveTo(p.x, p.y);
+                    else ctx.lineTo(p.x, p.y);
+                });
+                ctx.stroke();
+
+                waveAnimId = requestAnimationFrame(animateWave);
+            }
+
+            animateWave();
         }
 
         async function displayRunDetails(runId) {
@@ -1325,43 +1586,138 @@
                 const matrixData = await response.json();
                 
                 renderDensityMatrix(matrixData.matrix, 'matrix-grid-element');
+                drawWavefunctionGraph(matrixData.matrix);
                 
                 // Show purity and entropy
                 document.getElementById('det-purity').innerText = matrixData.purity.toFixed(4);
                 document.getElementById('det-entropy').innerText = matrixData.entropy.toFixed(4);
                 
                 // Handle Bloch sphere visualization
-                const totalQubits = run.qubits_count || (run.experiment_name === 'bell_state' ? 2 : 1);
-                const isBellOrMulti = totalQubits > 1;
+                const totalQubits = Math.round(Math.log2(matrixData.matrix.length));
                 const coordsElement = document.getElementById('bloch-coords-element');
-                const canvasContainer = document.getElementById('bloch-canvas-container');
                 const blochTitle = document.getElementById('bloch-panel-title');
+                const qubitSelect = document.getElementById('qubit-selector');
+                currentRunBlochData = matrixData.bloch_per_qubit || [];
 
-                if (isBellOrMulti) {
-                    blochTitle.innerText = `Bloch Sphere (Qubit 0 Reduced of ${totalQubits} Qubits)`;
+                if (totalQubits > 1 && currentRunBlochData.length > 0) {
+                    blochTitle.innerText = `Bloch Sphere (${totalQubits} Qubits System)`;
+                    qubitSelect.style.display = 'inline-block';
+                    qubitSelect.innerHTML = '';
+                    currentRunBlochData.forEach((b, idx) => {
+                        let label = `Qubit ${idx}`;
+                        if (run.experiment_name === 'quantum_teleportation') {
+                            if (idx === 0) label = `Qubit 0 (Message |ψ⟩)`;
+                            else if (idx === 1) label = `Qubit 1 (Alice Bell Pair)`;
+                            else if (idx === 2) label = `Qubit 2 (Bob / Teleported Target)`;
+                        }
+                        const opt = document.createElement('option');
+                        opt.value = idx;
+                        opt.innerText = label;
+                        qubitSelect.appendChild(opt);
+                    });
+                    qubitSelect.value = 0;
                 } else {
                     blochTitle.innerText = "Bloch Sphere Representation";
+                    qubitSelect.style.display = 'none';
                 }
 
-                if (matrixData.bloch) {
-                    coordsElement.style.display = 'flex';
-                    document.getElementById('coord-x').innerText = matrixData.bloch.x.toFixed(4);
-                    document.getElementById('coord-y').innerText = matrixData.bloch.y.toFixed(4);
-                    document.getElementById('coord-z').innerText = matrixData.bloch.z.toFixed(4);
-                    
-                    initThreeJS();
-                    updateBlochVector(matrixData.bloch.x, matrixData.bloch.y, matrixData.bloch.z);
-                } else {
-                    coordsElement.style.display = 'none';
-                    canvasContainer.innerHTML = `<div style="color: var(--text-muted); display:flex; align-items:center; justify-content:center; height:100%; font-size:0.9rem;">Multi-qubit representation (${totalQubits} qubits).</div>`;
-                    if (animationFrameId) {
-                        cancelAnimationFrame(animationFrameId);
-                        animationFrameId = null;
-                    }
-                    isThreeInitialized = false;
+                // Render multi-qubit coordinates overlay list
+                const coordsListEl = document.getElementById('multi-bloch-coords-list');
+                const colorsHex = ["#38bdf8", "#818cf8", "#c084fc", "#f472b6", "#34d399", "#fbbf24"];
+                coordsListEl.innerHTML = '';
+                if (currentRunBlochData && currentRunBlochData.length > 0) {
+                    currentRunBlochData.forEach((b, idx) => {
+                        const color = colorsHex[idx % colorsHex.length];
+                        const rowHtml = `<div style="font-size: 0.75rem; color: ${color}; font-family: 'JetBrains Mono', monospace;"><strong style="color: ${color}">Qubit ${idx}:</strong> x=${b.x.toFixed(4)}, y=${b.y.toFixed(4)}, z=${b.z.toFixed(4)}</div>`;
+                        coordsListEl.insertAdjacentHTML('beforeend', rowHtml);
+                    });
+                } else if (matrixData.bloch) {
+                    coordsListEl.innerHTML = `<div style="font-size: 0.75rem; color: #38bdf8; font-family: 'JetBrains Mono', monospace;"><strong style="color: #38bdf8">Qubit 0:</strong> x=${matrixData.bloch.x.toFixed(4)}, y=${matrixData.bloch.y.toFixed(4)}, z=${matrixData.bloch.z.toFixed(4)}</div>`;
+                }
+
+                // Render State Basis Probabilities Histogram
+                renderStateHistogram(matrixData.matrix);
+
+                // Render Cirq Executable Python Code
+                renderCircuitCode(run);
+
+                initThreeJS();
+                const blochVector = (currentRunBlochData.length > 0) ? currentRunBlochData[0] : matrixData.bloch;
+                if (blochVector) {
+                    updateBlochVector(blochVector.x, blochVector.y, blochVector.z, currentRunBlochData);
                 }
             } catch (err) {
                 console.error("Error loading run detail:", err);
+            }
+        }
+
+        let currentRunBlochData = [];
+
+        function renderStateHistogram(matrix) {
+            const container = document.getElementById('state-probs-histogram');
+            if (!container) return;
+            container.innerHTML = '';
+            const n = matrix.length;
+            const qubits = Math.round(Math.log2(n));
+
+            for (let i = 0; i < n; i++) {
+                const prob = matrix[i][i].real;
+                const bitstring = i.toString(2).padStart(qubits, '0');
+                const heightPct = Math.max(4, Math.round(prob * 100));
+
+                const barHtml = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; flex: 1; height: 100%; min-width: 28px;">
+                        <span style="font-size: 0.65rem; color: var(--text-muted); margin-bottom: 4px;">${(prob * 100).toFixed(0)}%</span>
+                        <div style="width: 100%; height: ${heightPct}%; background: linear-gradient(180deg, #38bdf8 0%, #6366f1 100%); border-radius: 4px 4px 0 0;" title="|${bitstring}⟩: ${(prob * 100).toFixed(2)}%"></div>
+                        <span style="font-size: 0.7rem; font-family: 'JetBrains Mono', monospace; color: var(--text-bright); margin-top: 6px;">|${bitstring}⟩</span>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', barHtml);
+            }
+        }
+
+        function renderCircuitCode(run) {
+            const block = document.getElementById('circuit-code-block');
+            if (!block) return;
+            const exp = run.experiment_name;
+            const p = JSON.stringify(run.params || {});
+            
+            block.innerText = "# Executable Python script for experiment: " + exp + "\n" +
+"import cirq\n" +
+"from qex import Runner, CirqBackend\n" +
+"from qex.demos import " + exp + "_experiment\n\n" +
+"# Initialize\n" +
+"backend = CirqBackend()\n" +
+"runner = Runner(backend)\n" +
+"exp = " + exp + "_experiment()\n\n" +
+"# Execute simulation run\n" +
+"print('Density Matrix:\\n', record.get_density_matrix())\n";
+        }
+
+        function switchWorkbenchTab(tab) {
+            const tabs = ['matrix', 'bloch', 'waves', 'probs', 'code'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t}`);
+                const panel = document.getElementById(`panel-tab-${t}`);
+                if (btn) {
+                    if (t === tab) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                }
+                if (panel) {
+                    if (t === tab) panel.style.display = 'block';
+                    else panel.style.display = 'none';
+                }
+            });
+        }
+
+        function onQubitSelectorChange(qIdx) {
+            const idx = parseInt(qIdx);
+            if (currentRunBlochData && currentRunBlochData[idx]) {
+                const b = currentRunBlochData[idx];
+                document.getElementById('coord-x').innerText = b.x.toFixed(4);
+                document.getElementById('coord-y').innerText = b.y.toFixed(4);
+                document.getElementById('coord-z').innerText = b.z.toFixed(4);
+                updateBlochVector(b.x, b.y, b.z);
             }
         }
 
@@ -1434,8 +1790,8 @@
             const n = matrix.length;
             const isCompact = elementId !== 'matrix-grid-element';
 
-            // Performance ceiling: if dimension > 8 (i.e. N > 3 qubits), do not render the grid
-            if (n > 8) {
+            // Render density matrix grid up to 16x16 (4 qubits)
+            if (n > 16) {
                 const totalQubits = Math.round(Math.log2(n));
                 grid.style.gridTemplateColumns = '1fr';
                 grid.innerHTML = `
@@ -1448,6 +1804,8 @@
             }
 
             grid.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+            grid.style.maxHeight = "320px";
+            grid.style.overflow = "auto";
 
             for (let i = 0; i < n; i++) {
                 for (let j = 0; j < n; j++) {
@@ -1465,20 +1823,35 @@
 
                     let complexText = '';
                     if (Math.abs(cVal.imag) < 0.001) {
-                        complexText = `${cVal.real.toFixed(isCompact ? 2 : 3)}`;
+                        complexText = `${cVal.real.toFixed(n >= 16 ? 1 : 2)}`;
                     } else {
                         const sign = cVal.imag >= 0 ? '+' : '-';
-                        complexText = `${cVal.real.toFixed(isCompact ? 2 : 3)}${sign}${Math.abs(cVal.imag).toFixed(isCompact ? 2 : 3)}i`;
+                        complexText = `${cVal.real.toFixed(1)}${sign}${Math.abs(cVal.imag).toFixed(1)}i`;
                     }
 
-                    const cellSize = isCompact ? '60px' : '100px';
-                    const fontSizeVal = isCompact ? '0.7rem' : '0.75rem';
-                    const fontSizeComplex = isCompact ? '0.55rem' : '0.65rem';
+                    let cellSize = '100px';
+                    let fontSizeVal = '0.75rem';
+                    let fontSizeComplex = '0.65rem';
 
+                    if (n >= 16) {
+                        cellSize = '22px';
+                        fontSizeVal = '0.45rem';
+                        fontSizeComplex = '0.35rem';
+                    } else if (n >= 8) {
+                        cellSize = '40px';
+                        fontSizeVal = '0.65rem';
+                        fontSizeComplex = '0.5rem';
+                    } else if (n >= 4) {
+                        cellSize = '65px';
+                        fontSizeVal = '0.7rem';
+                        fontSizeComplex = '0.55rem';
+                    }
+
+                    const showComplex = n <= 8;
                     const cellHtml = `
-                        <div class="matrix-cell" style="width:${cellSize}; height:${cellSize}; background: ${cellBg}; border-color: ${cellBorder};" title="Row ${i}, Col ${j}\nMagnitude: ${mag.toFixed(4)}">
-                            <span class="matrix-cell-val" style="font-size: ${fontSizeVal}">${mag.toFixed(isCompact ? 2 : 3)}</span>
-                            <span class="matrix-cell-complex" style="font-size: ${fontSizeComplex}; margin-top: 2px;">${complexText}</span>
+                        <div class="matrix-cell" style="width:${cellSize}; height:${cellSize}; min-width:${cellSize}; min-height:${cellSize}; background: ${cellBg}; border-color: ${cellBorder};" title="Row ${i}, Col ${j}\nRe: ${cVal.real.toFixed(4)}\nIm: ${cVal.imag.toFixed(4)}\nMagnitude: ${mag.toFixed(4)}">
+                            <span class="matrix-cell-val" style="font-size: ${fontSizeVal}">${mag.toFixed(n >= 16 ? 1 : 2)}</span>
+                            ${showComplex ? `<span class="matrix-cell-complex" style="font-size: ${fontSizeComplex}; margin-top: 2px;">${complexText}</span>` : ''}
                         </div>
                     `;
                     grid.insertAdjacentHTML('beforeend', cellHtml);
@@ -1487,6 +1860,8 @@
         }
 
         // Initialize 3D Bloch Sphere for Single View
+        let blochArrowCone, blochPhaseRing;
+
         function initThreeJS() {
             const container = document.getElementById('bloch-canvas-container');
             if (isThreeInitialized) return;
@@ -1501,24 +1876,24 @@
             renderer.setSize(width, height);
             container.appendChild(renderer.domElement);
 
-            const ambient = new THREE.AmbientLight(0xffffff, 0.35);
+            const ambient = new THREE.AmbientLight(0xffffff, 0.4);
             scene.add(ambient);
-            const dirLight = new THREE.DirectionalLight(0x66fcf1, 0.85);
+            const dirLight = new THREE.DirectionalLight(0x38bdf8, 0.9);
             dirLight.position.set(4, 5, 3);
             scene.add(dirLight);
 
-            const sphereGeom = new THREE.SphereGeometry(1, 30, 30);
+            const sphereGeom = new THREE.SphereGeometry(1, 32, 32);
             const sphereMat = new THREE.MeshPhongMaterial({
-                color: 0x1f2833,
+                color: 0x0f172a,
                 transparent: true,
-                opacity: 0.15,
+                opacity: 0.25,
                 side: THREE.DoubleSide
             });
             sphere = new THREE.Mesh(sphereGeom, sphereMat);
             scene.add(sphere);
 
             const wireframe = new THREE.WireframeGeometry(sphereGeom);
-            wireframeLine = new THREE.LineSegments(wireframe, new THREE.LineBasicMaterial({ color: 0x66fcf1, opacity: 0.12 }));
+            wireframeLine = new THREE.LineSegments(wireframe, new THREE.LineBasicMaterial({ color: 0x38bdf8, opacity: 0.2 }));
             scene.add(wireframeLine);
 
             const equatorGeom = new THREE.BufferGeometry();
@@ -1528,34 +1903,42 @@
                 points.push(new THREE.Vector3(Math.cos(theta), 0, Math.sin(theta)));
             }
             equatorGeom.setFromPoints(points);
-            const equator = new THREE.Line(equatorGeom, new THREE.LineBasicMaterial({ color: 0x858688, opacity: 0.3 }));
+            const equator = new THREE.Line(equatorGeom, new THREE.LineBasicMaterial({ color: 0x818cf8, opacity: 0.4 }));
             scene.add(equator);
 
             axesHelper = new THREE.AxesHelper(1.3);
             scene.add(axesHelper);
 
-            const pointGeom = new THREE.SphereGeometry(0.04, 16, 16);
-            const pointMat = new THREE.MeshPhongMaterial({ color: 0xc5a1ff, emissive: 0xc5a1ff, emissiveIntensity: 0.3 });
+            // Vector Head Particle Sphere
+            const pointGeom = new THREE.SphereGeometry(0.06, 16, 16);
+            const pointMat = new THREE.MeshPhongMaterial({ color: 0x38bdf8, emissive: 0x38bdf8, emissiveIntensity: 0.8 });
             pointMarker = new THREE.Mesh(pointGeom, pointMat);
             scene.add(pointMarker);
 
+            // Arrow Line Stem
             const lineGeom = new THREE.BufferGeometry().setFromPoints([
                 new THREE.Vector3(0, 0, 0),
                 new THREE.Vector3(0, 0, 0)
             ]);
-            lineMarker = new THREE.Line(lineGeom, new THREE.LineBasicMaterial({ color: 0xc5a1ff, linewidth: 2 }));
+            lineMarker = new THREE.Line(lineGeom, new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 3 }));
             scene.add(lineMarker);
+
+            // Arrow Cone Tip
+            const coneGeom = new THREE.ConeGeometry(0.05, 0.15, 16);
+            const coneMat = new THREE.MeshPhongMaterial({ color: 0x38bdf8, emissive: 0x38bdf8, emissiveIntensity: 0.9 });
+            blochArrowCone = new THREE.Mesh(coneGeom, coneMat);
+            scene.add(blochArrowCone);
 
             camera.position.set(2.4, 1.8, 2.4);
             camera.lookAt(0, 0, 0);
 
-            let angle = 0;
+            isThreeInitialized = true;
+
             function animate() {
                 animationFrameId = requestAnimationFrame(animate);
-                angle += 0.005;
-                camera.position.x = 2.4 * Math.cos(angle);
-                camera.position.z = 2.4 * Math.sin(angle);
-                camera.lookAt(0, 0, 0);
+                if (scene) {
+                    scene.rotation.y += 0.003;
+                }
                 renderer.render(scene, camera);
             }
             
@@ -1564,14 +1947,67 @@
             isThreeInitialized = true;
         }
 
-        function updateBlochVector(x, y, z) {
+        let extraVectorMeshes = [];
+
+        function updateBlochVector(x, y, z, multiVectors = null) {
             if (!isThreeInitialized) return;
-            pointMarker.position.set(x, z, -y);
-            const points = [
-                new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(x, z, -y)
-            ];
-            lineMarker.geometry.setFromPoints(points);
+
+            // Clear previous extra vectors
+            extraVectorMeshes.forEach(mesh => scene.remove(mesh));
+            extraVectorMeshes = [];
+
+            const colors = [0x38bdf8, 0x818cf8, 0xc084fc, 0xf472b6, 0x34d399, 0xfbbf24];
+
+            if (multiVectors && multiVectors.length > 1) {
+                // Hide single default vector
+                pointMarker.visible = false;
+                lineMarker.visible = false;
+                blochArrowCone.visible = false;
+
+                multiVectors.forEach((v, idx) => {
+                    const col = colors[idx % colors.length];
+                    const target = new THREE.Vector3(v.x, v.z, v.y);
+
+                    // Stem line
+                    const lineGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), target]);
+                    const lineMesh = new THREE.Line(lineGeom, new THREE.LineBasicMaterial({ color: col, linewidth: 3 }));
+                    scene.add(lineMesh);
+                    extraVectorMeshes.push(lineMesh);
+
+                    // Cone tip
+                    const coneGeom = new THREE.ConeGeometry(0.05, 0.15, 16);
+                    const coneMat = new THREE.MeshPhongMaterial({ color: col, emissive: col, emissiveIntensity: 0.8 });
+                    const coneMesh = new THREE.Mesh(coneGeom, coneMat);
+                    coneMesh.position.copy(target);
+                    coneMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), target.clone().normalize());
+                    scene.add(coneMesh);
+                    extraVectorMeshes.push(coneMesh);
+
+                    // Particle sphere
+                    const ptGeom = new THREE.SphereGeometry(0.05, 16, 16);
+                    const ptMat = new THREE.MeshPhongMaterial({ color: col, emissive: col, emissiveIntensity: 0.8 });
+                    const ptMesh = new THREE.Mesh(ptGeom, ptMat);
+                    ptMesh.position.copy(target);
+                    scene.add(ptMesh);
+                    extraVectorMeshes.push(ptMesh);
+                });
+            } else {
+                pointMarker.visible = true;
+                lineMarker.visible = true;
+                blochArrowCone.visible = true;
+
+                const target = new THREE.Vector3(x, z, y);
+                pointMarker.position.copy(target);
+
+                const positions = new Float32Array([0, 0, 0, target.x, target.y, target.z]);
+                lineMarker.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                lineMarker.geometry.attributes.position.needsUpdate = true;
+
+                if (blochArrowCone) {
+                    blochArrowCone.position.copy(target);
+                    blochArrowCone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), target.clone().normalize());
+                }
+            }
         }
 
         // Compare Bloch rendering functions
